@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Torre de Controle - Abastecimento de Fábrica</title>
+  <!-- FAVICON PERSONALIZADO (ESCUDO AZUL) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -11,37 +12,168 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   </script>
   <style>
-    body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; }
-    .sidebar { min-height: 100vh; background-color: #0f172a; color: #fff; }
-    .sidebar .nav-link { color: #94a3b8; font-weight: 500; padding: 12px 20px; border-radius: 6px; margin: 4px 10px; cursor: pointer; }
-    .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #1e293b; }
+    body {
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding-top: 56px; /* espaço para o topo fixo */
+      padding-bottom: 40px; /* espaço para o rodapé fixo */
+    }
+
+    /* TOPO FIXO */
+    .top-navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      background: #0f172a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 1030;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .top-brand {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* RODAPÉ FIXO */
+    .fixed-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 38px;
+      background-color: #0f172a;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 1030;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      letter-spacing: 0.3px;
+    }
+    .fixed-footer strong {
+      color: #f1f5f9;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    /* BARRA LATERAL */
+    .sidebar {
+      min-height: calc(100vh - 94px);
+      background-color: #1e293b;
+      color: #fff;
+      padding: 15px 0;
+    }
+    .sidebar .nav-link {
+      color: #cbd5e1;
+      font-weight: 500;
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin: 4px 12px;
+      cursor: pointer;
+    }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active {
+      color: #fff;
+      background-color: #334155;
+    }
     .sidebar .nav-link i { margin-right: 10px; }
-    .main-content { padding: 25px 35px; }
-    .card-kpi { border: none; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-    .status-badge { font-size: 0.78rem; padding: 5px 12px; border-radius: 20px; font-weight: 600; display: inline-block; }
+
+    .main-content {
+      padding: 25px 30px;
+      min-height: calc(100vh - 94px);
+    }
+    .card-kpi {
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .status-badge {
+      font-size: 0.78rem;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+    }
     
     .badge-PENDENTEIMPRESSAO, .badge-IMPORTADO { background-color: #fef3c7; color: #92400e; }
     .badge-IMPRESSO { background-color: #e0e7ff; color: #3730a3; }
     .badge-ENTREGUEAOOPERADOR { background-color: #ffedd5; color: #9a3412; }
     .badge-FINALIZADO { background-color: #dcfce7; color: #166534; }
     
-    .input-edit-preview { font-size: 0.85rem; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; }
-    .input-edit-preview:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+    .input-edit-preview {
+      font-size: 0.85rem;
+      padding: 5px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #fff;
+    }
+    .input-edit-preview:focus {
+      border-color: #2563eb;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+    }
     
-    .sys-modal .modal-content { border-radius: 12px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    .sys-modal .modal-content {
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
     .sys-modal .modal-body { padding: 24px; }
-    .icon-container { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    .icon-container {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
     .icon-container.success { background-color: #dcfce7; color: #16a34a; }
     .icon-container.danger { background-color: #fee2e2; color: #dc2626; }
     .icon-container.warning { background-color: #fef3c7; color: #d97706; }
     .icon-container.info { background-color: #e0e7ff; color: #4f46e5; }
+
+    /* TELA DE LOGIN / BLOQUEIO */
+    #authOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.95);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .auth-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      padding: 32px;
+      text-align: center;
+    }
     
     @page {
       size: A4 landscape;
       margin: 8mm 12mm;
     }
     @media print {
-      body * { visibility: hidden !important; }
+      body { padding: 0 !important; }
+      .top-navbar, .fixed-footer, .sidebar, .main-content, #authOverlay { display: none !important; }
       #printableArea, #printableArea * { visibility: visible !important; }
       #printableArea { 
         position: absolute; 
@@ -60,19 +192,64 @@
   </style>
 </head>
 <body>
+
+<!-- TOPO FIXO -->
+<header class="top-navbar">
+  <div class="top-brand">
+    <i class="bi bi-shield-check text-primary fs-5"></i>
+    <span>TORRE DE CONTROLE &bull; ABASTECIMENTO DE FÁBRICA</span>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <div class="text-end small d-none d-md-block">
+      <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
+      <strong id="topUserDisplay" class="text-white">Carregando...</strong>
+    </div>
+    <button class="btn btn-outline-light btn-sm px-3" onclick="logoutSession()" title="Trocar ou sair da conta">
+      <i class="bi bi-box-arrow-right"></i> Sair
+    </button>
+  </div>
+</header>
+
+<!-- TELA DE AUTENTICAÇÃO / LOGIN (BLOQUEIA QUEM NÃO TEM CADASTRO) -->
+<div id="authOverlay" class="d-none">
+  <div class="auth-card">
+    <div class="icon-container info mx-auto">
+      <i class="bi bi-person-lock fs-2 text-primary"></i>
+    </div>
+    <h4 class="fw-bold text-dark mb-1">Acesso Restrito</h4>
+    <p class="text-secondary small mb-4">Informe seu e-mail cadastrado na planilha para acessar a Torre de Controle de Abastecimento.</p>
+    
+    <div id="loginAlertBox" class="alert alert-danger py-2 small d-none text-start"></div>
+
+    <form onsubmit="handleLoginSubmit(event)">
+      <div class="mb-3 text-start">
+        <label class="form-label small fw-bold text-dark">E-mail Cadastrado:</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+          <input type="email" id="inputLoginEmail" class="form-control" placeholder="exemplo@mcassab.com.br" required>
+        </div>
+      </div>
+      <button type="submit" id="btnLoginSubmit" class="btn btn-primary w-100 py-2 fw-bold">
+        <i class="bi bi-box-arrow-in-right me-1"></i> Acessar Painel
+      </button>
+    </form>
+    
+    <div class="mt-4 pt-3 border-top text-muted small">
+      Dúvidas ou novos acessos? Fale com a supervisão.
+    </div>
+  </div>
+</div>
+
+<!-- CORPO PRINCIPAL COM SIDEBAR -->
 <div class="container-fluid">
   <div class="row">
     <!-- BARRA LATERAL -->
     <div class="col-md-2 p-0 sidebar">
-      <div class="p-3 text-center border-bottom border-secondary border-opacity-25">
-        <h6 class="fw-bold tracking-wide m-0 text-white"><i class="bi bi-shield-check text-primary"></i> TORRE DE CONTROLE</h6>
-        <small class="text-secondary">Abastecimento de Fábrica</small>
+      <div class="p-3 text-center border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25 mb-2">
+        <small class="d-block text-secondary">Área de Atuação:</small>
+        <strong id="sessionUserArea" class="text-light small">PLANEJAMENTO</strong>
       </div>
-      <div class="p-3 text-center border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25">
-        <small class="d-block text-secondary">Usuário Ativo:</small>
-        <strong id="sessionUserEmail" class="text-light small">ROMÁRIO SILVA</strong>
-      </div>
-      <ul class="nav flex-column mt-3">
+      <ul class="nav flex-column">
         <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('import', this)"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Impressão)</a></li>
@@ -80,7 +257,7 @@
       </ul>
     </div>
 
-    <!-- ÁREA PRINCIPAL -->
+    <!-- ÁREA DE CONTEÚDO -->
     <div class="col-md-10 main-content">
       
       <!-- DASHBOARD -->
@@ -266,6 +443,11 @@
   </div>
 </div>
 
+<!-- RODAPÉ FIXO -->
+<footer class="fixed-footer">
+  <span>CRIADO E DESENVOLVIDO POR: <strong>ROMÁRIO SILVA</strong></span>
+</footer>
+
 <!-- MODAIS DO SISTEMA -->
 <div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
@@ -396,11 +578,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // ENVIADOR UNIVERSAL SEGURO: URLSearchParams para gravação e leitura sem preflight
+  let currentUserSession = null;
+
   async function apiCall(action, payload = {}) {
-    const bodyData = { action: action, ...payload };
+    const bodyData = { 
+      action: action, 
+      userEmail: currentUserSession ? currentUserSession.email : "",
+      ...payload 
+    };
     const formData = new URLSearchParams();
     formData.append("payload", JSON.stringify(bodyData));
 
@@ -413,6 +601,72 @@
     } catch(err) {
       return { success: false, error: err.message };
     }
+  }
+
+  // CONTROLE DE AUTENTICAÇÃO E SESSÃO
+  function checkAuth() {
+    const saved = localStorage.getItem("torre_user_session");
+    if (saved) {
+      try {
+        currentUserSession = JSON.parse(saved);
+        applyUserData(currentUserSession);
+        document.getElementById("authOverlay").classList.add("d-none");
+        loadDashboard();
+      } catch(e) {
+        showLoginOverlay();
+      }
+    } else {
+      showLoginOverlay();
+    }
+  }
+
+  function showLoginOverlay() {
+    document.getElementById("authOverlay").classList.remove("d-none");
+    document.getElementById("inputLoginEmail").focus();
+  }
+
+  async function handleLoginSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById("inputLoginEmail").value.trim();
+    const btn = document.getElementById("btnLoginSubmit");
+    const alertBox = document.getElementById("loginAlertBox");
+
+    alertBox.classList.add("d-none");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Validando acesso...`;
+
+    try {
+      const res = await apiCall("login", { email: email });
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Acessar Painel`;
+
+      if (res && res.success) {
+        currentUserSession = res.user;
+        localStorage.setItem("torre_user_session", JSON.stringify(res.user));
+        applyUserData(res.user);
+        document.getElementById("authOverlay").classList.add("d-none");
+        loadDashboard();
+      } else {
+        alertBox.innerText = res ? res.error : "E-mail não autorizado.";
+        alertBox.classList.remove("d-none");
+      }
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Acessar Painel`;
+      alertBox.innerText = "Erro na comunicação: " + err.message;
+      alertBox.classList.remove("d-none");
+    }
+  }
+
+  function applyUserData(user) {
+    document.getElementById("topUserDisplay").innerText = `${user.nome} (${user.perfil || 'USUÁRIO'})`;
+    document.getElementById("sessionUserArea").innerText = user.area || "OPERAÇÃO";
+  }
+
+  function logoutSession() {
+    localStorage.removeItem("torre_user_session");
+    currentUserSession = null;
+    showLoginOverlay();
   }
 
   let cachedPreviewData = null;
@@ -436,14 +690,8 @@
     new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
   }
 
-  document.addEventListener("DOMContentLoaded", async function() {
-    try {
-      const user = await apiCall("getUserSession");
-      if (user && user.email) {
-        document.getElementById("sessionUserEmail").innerText = user.email + " (" + user.perfil + ")";
-      }
-    } catch(e) {}
-    loadDashboard();
+  document.addEventListener("DOMContentLoaded", function() {
+    checkAuth();
   });
 
   function showSection(sectionId, element) {
@@ -468,7 +716,7 @@
     } catch(e) {}
   }
 
-  // PARSER DIRETO NO NAVEGADOR
+  // PARSER LOCAL NO NAVEGADOR
   function parseAbastecimentoLocal(rawText, fileName) {
     const result = {
       arquivo: fileName,
