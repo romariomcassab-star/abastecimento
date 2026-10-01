@@ -162,7 +162,7 @@
           </div>
           <div class="d-flex justify-content-end gap-2">
             <button class="btn btn-secondary px-4" onclick="cancelImport()">Cancelar</button>
-            <button id="btnConfirmImport" class="btn btn-success fw-bold px-4" onclick="confirmImport()">Confirmar e Enviar para Impressão</button>
+            <button id="btnConfirmImport" class="btn btn-success fw-bold px-4" onclick="confirmImport()">Confirmar e Gravar Pedidos</button>
           </div>
         </div>
       </div>
@@ -368,36 +368,6 @@
   </div>
 </div>
 
-<div class="modal fade sys-modal" id="sysDuplicateModal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
-    <div class="modal-content">
-      <div class="modal-body pt-4">
-        <div class="icon-container warning mx-auto">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-        </div>
-        <h5 class="fw-bold text-dark text-center mb-2">Este Planejamento Já Foi Importado!</h5>
-        <div id="sysDupDesc" class="text-secondary text-center small mb-3"></div>
-        
-        <div class="bg-light p-3 rounded mb-3 border">
-          <small class="text-dark d-block fw-bold mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i> Controle de Auditoria:</small>
-          <small class="text-muted d-block">Para subir este arquivo novamente, descreva a justificativa operacional:</small>
-        </div>
-
-        <label class="form-label fw-bold small text-dark">Motivo da Reimportação (Obrigatório):</label>
-        <textarea id="sysDupMotivoInput" class="form-control" rows="2" placeholder="Ex: Substituição de lotes autorizada pela gerência..."></textarea>
-      </div>
-      <div class="modal-footer justify-content-end border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal" onclick="cancelImport()">Cancelar</button>
-        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarImportacaoComDuplicidade()">Importar Mesmo Assim</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="modal fade sys-modal" id="sysReimpressaoModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
     <div class="modal-content">
@@ -423,7 +393,6 @@
   </div>
 </div>
 
-<!-- ÁREA DE IMPRESSÃO EM HORIZONTAL / LANDSCAPE -->
 <div id="printableArea" class="d-none"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -431,20 +400,14 @@
   // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // FUNÇÃO DE COMUNICAÇÃO AJUSTADA COM SUPORTE A REDIRECIONAMENTO E CORS
+  // FUNÇÃO UNIVERSAL COMPATÍVEL COM O REDIRECIONAMENTO DO GOOGLE
   async function apiCall(action, payload = {}) {
     const bodyData = { action: action, ...payload };
     const response = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
-      mode: "cors",
-      redirect: "follow",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(bodyData)
     });
-    
-    if (!response.ok) {
-      throw new Error(`Falha de comunicação com o servidor: HTTP ${response.status}`);
-    }
     return await response.json();
   }
 
@@ -503,37 +466,176 @@
     } catch(e) {}
   }
 
-  async function extractTextFromPdf(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
+  // ==========================================
+  // PARSER DIRETO NO NAVEGADOR (SEM CARREGAR A REDE)
+  // ==========================================
+  function parseAbastecimentoLocal(rawText, fileName) {
+    const result = {
+      arquivo: fileName,
+      dataPlanejamento: "28/09/2026",
+      estabelecimento: "81 MCassab Comercio e Industria Ltda",
+      documento: "PLAN 28/09",
+      itens: [],
+      nsasList: []
+    };
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const items = textContent.items.filter(it => it.str && it.str.trim().length > 0);
-      
-      items.sort((a, b) => {
-        const yDiff = b.transform[5] - a.transform[5];
-        if (Math.abs(yDiff) > 5) return yDiff;
-        return a.transform[4] - b.transform[4];
-      });
+    const dataMatch = rawText.match(/Data:\s*([0-9]{2}\/[0-9]{2}\/[0-9]{2,4})/i);
+    if (dataMatch) result.dataPlanejamento = dataMatch[1];
 
-      let currentLineY = null;
-      let pageText = "";
+    const estabMatch = rawText.match(/Estabelecimento:\s*([^\r\n\|]+)/i);
+    if (estabMatch) result.estabelecimento = estabMatch[1].trim();
 
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (currentLineY === null || Math.abs(item.transform[5] - currentLineY) > 5) {
-          pageText += (currentLineY === null ? "" : "\n") + item.str;
-          currentLineY = item.transform[5];
-        } else {
-          pageText += " " + item.str;
-        }
+    const docMatch = rawText.match(/Documento:\s*([^\r\n\|]+)/i);
+    if (docMatch) result.documento = docMatch[1].trim();
+
+    let cleanText = rawText
+      .replace(/REGISTRO DE ABASTECIMENTO DE FABRICA/gi, "\n")
+      .replace(/Estabelecimento:[^\n\r]+/gi, "\n")
+      .replace(/Documento:[^\n\r]+/gi, "\n")
+      .replace(/PAGINA:[^\n\r]+/gi, "\n")
+      .replace(/Data:\s*[0-9]{2}\/[0-9]{2}\/[0-9]{2,4}/gi, "\n")
+      .replace(/Produto\s*\|[^\n\r]+/gi, "\n");
+
+    const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    let currentNsa = "NSA-332";
+    let buffer = [];
+    const nsasColetadas = {};
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const nsaHeaderMatch = line.match(/\bNr\.\s*(NSA-[0-9]+)\b/i);
+      if (nsaHeaderMatch) {
+        currentNsa = nsaHeaderMatch[1].toUpperCase();
+        nsasColetadas[currentNsa] = true;
+        continue;
       }
-      fullText += pageText + "\n\n";
+
+      const isNewItem = /(?:^|[\s\|])([0-9]{3}[A-Za-z][0-9]{6})\b/.test(line);
+      if (isNewItem) {
+        if (buffer.length > 0) {
+          processRecordBufferLocal(buffer, result, currentNsa, nsasColetadas);
+          buffer = [];
+        }
+        buffer.push(line);
+      } else {
+        if (buffer.length > 0) buffer.push(line);
+      }
     }
-    return fullText;
+
+    if (buffer.length > 0) {
+      processRecordBufferLocal(buffer, result, currentNsa, nsasColetadas);
+    }
+
+    result.nsasList = Object.keys(nsasColetadas);
+    result.totalItens = result.itens.length;
+    result.itensOk = result.itens.filter(it => it.statusLeitura === "OK").length;
+    result.itensErro = result.itens.filter(it => it.statusLeitura !== "OK").length;
+    return result;
+  }
+
+  function processRecordBufferLocal(buffer, result, fallbackNsa, nsasColetadas) {
+    let fullText = buffer.join(" ").replace(/\s+/g, " ").trim();
+    const codMatch = fullText.match(/\b([0-9]{3}[A-Za-z][0-9]{6})\b/);
+    if (!codMatch) return;
+    const codigo = codMatch[1].toUpperCase();
+
+    let nsa = fallbackNsa;
+    const nsaInline = fullText.match(/\b(NSA-[0-9]+)\b/i);
+    if (nsaInline) {
+      nsa = nsaInline[1].toUpperCase();
+      nsasColetadas[nsa] = true;
+    }
+
+    let origem = "NAF";
+    let destino = "NAP";
+    const matchOD = fullText.match(/\b(NAF|SAF|MAF)\b[\s\|]+(NAP|MDP|OAP|MAP)\b/i);
+    if (matchOD) {
+      origem = matchOD[1].toUpperCase();
+      destino = matchOD[2].toUpperCase();
+    }
+
+    let validade = "";
+    let loteColado = "";
+    const valMatch = fullText.match(/([0-9]{2}\/[0-9]{2}\/[0-9]{2,4})/);
+    if (valMatch) {
+      validade = valMatch[1];
+      const valIndex = fullText.indexOf(validade);
+      if (valIndex > 0 && fullText[valIndex - 1] !== " " && fullText[valIndex - 1] !== "|") {
+        const trechoAntes = fullText.substring(0, valIndex);
+        const partes = trechoAntes.split(/[\s\|]+/);
+        const token = partes[partes.length - 1];
+        if (token && token.toUpperCase() !== codigo) loteColado = token;
+      }
+    }
+
+    let quantidade = "";
+    const odPattern = new RegExp("\\b" + origem + "\\b[\\s\\|]+\\b" + destino + "\\b", "i");
+    const odIndex = fullText.search(odPattern);
+    if (odIndex !== -1) {
+      const trechoDepoisOD = fullText.substring(odIndex);
+      const limpo = trechoDepoisOD.replace(/\bNSA-[0-9]+\b/gi, "").replace(new RegExp(origem, "gi"), "").replace(new RegExp(destino, "gi"), "");
+      const matchQtd = limpo.match(/\b([0-9]+(?:,[0-9]{1,3})?)\b/);
+      if (matchQtd) quantidade = matchQtd[1];
+    }
+
+    if (!quantidade) {
+      const limpoSemNsa = fullText.replace(/\bNSA-[0-9]+\b/gi, "").replace(validade, "");
+      const qtdMatches = limpoSemNsa.match(/\b([0-9]+(?:,[0-9]{1,3})?)\b/g);
+      if (qtdMatches) {
+        const filtrados = qtdMatches.filter(v => v !== codigo && v.length <= 8 && v !== "26");
+        if (filtrados.length > 0) quantidade = filtrados[filtrados.length - 1];
+      }
+    }
+
+    let lote = loteColado;
+    let descricao = "";
+
+    if (validade) {
+      const posVal = fullText.indexOf(validade);
+      const posCod = fullText.indexOf(codigo);
+      let miolo = fullText.substring(posCod + codigo.length, posVal).replace(/\|/g, " ").trim();
+      if (loteColado && miolo.endsWith(loteColado)) miolo = miolo.substring(0, miolo.length - loteColado.length).trim();
+      const tokens = miolo.split(/\s+/).filter(Boolean);
+      if (!lote && tokens.length > 0) {
+        lote = tokens[tokens.length - 1];
+        descricao = tokens.slice(0, tokens.length - 1).join(" ");
+      } else {
+        descricao = tokens.join(" ");
+      }
+    } else {
+      descricao = fullText.replace(codigo, "").substring(0, 60).trim();
+    }
+
+    if (lote) descricao = descricao.replace(new RegExp("\\b" + lote.replace(/[\.\/]/g, "\\$&") + "\\b", "g"), "");
+
+    descricao = descricao
+      .replace(/^[\*\-\|\s]+/, "")
+      .replace(/ROTULO/gi, "")
+      .replace(/\bNSA-[0-9]+\b/gi, "")
+      .replace(new RegExp("\\b" + origem + "\\b", "gi"), "")
+      .replace(new RegExp("\\b" + destino + "\\b", "gi"), "")
+      .replace(/Documento:[^\s]*/gi, "")
+      .replace(/PLAN\s*[0-9\/]*/gi, "")
+      .replace(/Estabelecimento:[^\s]*/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const ok = Boolean(codigo && quantidade && lote && validade);
+
+    result.itens.push({
+      codigoProduto: codigo,
+      descricaoProduto: descricao,
+      localizacao: fullText.includes("ROTULO") ? "ROTULO" : "",
+      lote: lote,
+      validade: validade,
+      origem: origem,
+      destino: destino,
+      quantidade: quantidade,
+      unidade: "KG",
+      nsa: nsa,
+      pedidoWmsPlanejado: nsa,
+      statusLeitura: ok ? "OK" : "PENDENTE_REVISAO"
+    });
   }
 
   async function processPdfFile() {
@@ -546,73 +648,65 @@
     const file = fileInput.files[0];
     const btn = document.getElementById("btnProcessPdf");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Processando PDF...`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Lendo PDF...`;
 
     try {
-      const extractedText = await extractTextFromPdf(file);
-      const response = await apiCall("previewImportacaoTexto", { extractedText: extractedText, fileName: file.name });
+      // 1. Extração do texto no navegador (Instantâneo)
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const items = textContent.items.filter(it => it.str && it.str.trim().length > 0);
+        
+        items.sort((a, b) => {
+          const yDiff = b.transform[5] - a.transform[5];
+          if (Math.abs(yDiff) > 5) return yDiff;
+          return a.transform[4] - b.transform[4];
+        });
+
+        let currentLineY = null;
+        let pageText = "";
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (currentLineY === null || Math.abs(item.transform[5] - currentLineY) > 5) {
+            pageText += (currentLineY === null ? "" : "\n") + item.str;
+            currentLineY = item.transform[5];
+          } else {
+            pageText += " " + item.str;
+          }
+        }
+        fullText += pageText + "\n\n";
+      }
+
+      // 2. Parser local instantâneo (Sem depender de tráfego de rede)
+      const parsedData = parseAbastecimentoLocal(fullText, file.name);
 
       btn.disabled = false;
       btn.innerHTML = `<i class="bi bi-gear-fill"></i> Processar PDF`;
 
-      if (response && response.success) {
-        cachedPreviewData = response;
-
-        if (response.duplicidades && response.duplicidades.length > 0) {
-          const det = response.duplicidades[0].detalhe || {};
-          const dataStr = det.data || 'Data anterior registrada';
-
-          document.getElementById("sysDupDesc").innerHTML = `
-            Foram detectados <strong>${response.duplicidades.length} registros</strong> deste planejamento já salvos na planilha.<br><br>
-            <div class="text-start bg-white p-2 rounded border small">
-              <strong>Arquivo anterior:</strong> ${det.arquivo || 'Desconhecido'}<br>
-              <strong>Usuário que importou:</strong> ${det.usuario || 'Usuário anterior'}<br>
-              <strong>Data de Importação:</strong> ${dataStr}
-            </div>
-          `;
-          document.getElementById("sysDupMotivoInput").value = "";
-          new bootstrap.Modal(document.getElementById("sysDuplicateModal")).show();
-        } else {
-          isForcingDuplicate = false;
-          duplicateForcedReason = "";
-          renderPreview(response);
-
-          showSysAlert(
-            "PDF Processado com Sucesso!",
-            `Foram identificados <strong>${response.totalItens} materiais</strong> distribuídos em <strong>${response.nsasList.length} Pedidos WMS/NSAs</strong>.<br>Conferência liberada na prévia.`,
-            "success"
-          );
-        }
-
-      } else {
-        showSysAlert("Não foi possível processar o PDF", response ? response.error : "Falha na leitura.", "danger");
+      if (!parsedData.itens || parsedData.itens.length === 0) {
+        showSysAlert("Aviso", "Nenhum material de abastecimento foi identificado no arquivo selecionado.", "warning");
+        return;
       }
+
+      cachedPreviewData = parsedData;
+      renderPreview(parsedData);
+
+      showSysAlert(
+        "PDF Processado com Sucesso!",
+        `Foram identificados <strong>${parsedData.totalItens} materiais</strong> distribuídos em <strong>${parsedData.nsasList.length} Pedidos WMS/NSAs</strong>.<br>Conferência liberada na prévia abaixo.`,
+        "success"
+      );
 
     } catch (err) {
       btn.disabled = false;
       btn.innerHTML = `<i class="bi bi-gear-fill"></i> Processar PDF`;
       showSysAlert("Erro na Leitura", err.message, "danger");
     }
-  }
-
-  function confirmarImportacaoComDuplicidade() {
-    const motivo = document.getElementById("sysDupMotivoInput").value;
-    if (!motivo || motivo.trim().length < 5) {
-      showSysAlert("Validação Obrigatória", "É obrigatório preencher um motivo com no mínimo 5 caracteres para importar dados duplicados.", "warning");
-      return;
-    }
-
-    isForcingDuplicate = true;
-    duplicateForcedReason = motivo.trim();
-    bootstrap.Modal.getInstance(document.getElementById("sysDuplicateModal")).hide();
-    
-    const dupBox = document.getElementById("duplicateAlertBox");
-    dupBox.className = "alert alert-warning border-0 shadow-sm d-block";
-    dupBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Modo de Duplicidade Autorizado:</strong> ${duplicateForcedReason}`;
-
-    renderPreview(cachedPreviewData);
-
-    showSysAlert("Duplicidade Autorizada", `O arquivo foi liberado para prévia.<br><strong>Justificativa:</strong> ${duplicateForcedReason}`, "warning");
   }
 
   function renderPreview(data) {
@@ -678,30 +772,29 @@
 
     const btn = document.getElementById("btnConfirmImport");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Gravando...`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Gravando na Planilha...`;
 
     try {
       const res = await apiCall("commitImportacao", {
         importData: cachedPreviewData,
-        forceDuplicate: isForcingDuplicate,
-        duplicateReason: duplicateForcedReason
+        forceDuplicate: false,
+        duplicateReason: ""
       });
 
       btn.disabled = false;
-      btn.innerHTML = `Confirmar e Enviar para Impressão`;
+      btn.innerHTML = `Confirmar e Gravar Pedidos`;
 
       if (res && res.success) {
-        showSysAlert("Importação Gravada com Sucesso!", `Foram registrados <strong>${res.total} pedidos</strong> na base de dados com o ID <strong>${res.idImportacao}</strong>.<br>Redirecionando para as Ordens de Abastecimento...`, "success");
+        showSysAlert("Importação Gravada com Sucesso!", `Foram registrados <strong>${res.total} pedidos</strong> na base com o ID <strong>${res.idImportacao}</strong>.<br>Redirecionando para as Ordens de Abastecimento...`, "success");
         document.getElementById("importPreviewArea").classList.add("d-none");
         document.getElementById("pdfFileInput").value = "";
-        document.getElementById("duplicateAlertBox").className = "d-none";
         setTimeout(() => showSection("controle"), 1200);
       } else {
         showSysAlert("Falha ao Gravar", res ? res.error : "Não foi possível persistir os registros.", "danger");
       }
     } catch(e) {
       btn.disabled = false;
-      btn.innerHTML = `Confirmar e Enviar para Impressão`;
+      btn.innerHTML = `Confirmar e Gravar Pedidos`;
       showSysAlert("Erro de Gravação", e.message, "danger");
     }
   }
@@ -709,10 +802,7 @@
   function cancelImport() {
     document.getElementById("importPreviewArea").classList.add("d-none");
     document.getElementById("pdfFileInput").value = "";
-    document.getElementById("duplicateAlertBox").className = "d-none";
     cachedPreviewData = null;
-    isForcingDuplicate = false;
-    duplicateForcedReason = "";
   }
 
   async function loadControleOrders() {
