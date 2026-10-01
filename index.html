@@ -7,10 +7,15 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- LEITOR E GERADOR NATIVO DE PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     body {
       background-color: #f8fafc;
@@ -146,7 +151,7 @@
     .icon-container.warning { background-color: #fef3c7; color: #d97706; }
     .icon-container.info { background-color: #e0e7ff; color: #4f46e5; }
 
-    /* TELA DE LOGIN / BLOQUEIO */
+    /* TELA DE LOGIN */
     #authOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -165,60 +170,6 @@
       box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
       padding: 32px;
       text-align: center;
-    }
-    
-    /* REGRAS DE IMPRESSÃO LIMPA E SEM URL / DATA DO NAVEGADOR */
-    @page {
-      size: A4 landscape;
-      margin: 0; /* Remove a data no topo e o link no rodapé */
-    }
-    @media print {
-      body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #fff !important;
-      }
-      .top-navbar, .fixed-footer, .sidebar, .main-content, #authOverlay {
-        display: none !important;
-      }
-      #printableArea, #printableArea * {
-        visibility: visible !important;
-      }
-      #printableArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        display: block !important;
-        font-family: Arial, sans-serif !important;
-        color: #000 !important;
-      }
-      .print-page-wrapper {
-        padding: 10mm 14mm;
-        box-sizing: border-box;
-      }
-      .page-break {
-        page-break-after: always;
-      }
-      .raf-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 8px;
-        font-size: 11px;
-      }
-      .raf-table th {
-        background-color: #222 !important;
-        color: #fff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        padding: 5px 6px;
-        border: 1px solid #000;
-        text-align: center;
-      }
-      .raf-table td {
-        padding: 4px 6px;
-        border: 1px solid #000;
-      }
     }
   </style>
 </head>
@@ -283,7 +234,7 @@
       <ul class="nav flex-column">
         <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('import', this)"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Impressão)</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Ordens)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
       </ul>
     </div>
@@ -599,16 +550,15 @@
       </div>
       <div class="modal-footer justify-content-end border-0">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarReimpressaoAcao()">Confirmar Reimpressão (2 Vias)</button>
+        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarReimpressaoAcao()">Confirmar e Gerar PDF (2 Vias)</button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="printableArea" class="d-none"></div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+  // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
   let currentUserSession = null;
@@ -1157,8 +1107,8 @@
             <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
             <td>
               <div class="d-flex gap-1">
-                <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Imprimir Ordem Completa em 2 vias">
-                  <i class="bi bi-printer"></i> Imprimir Ordem (2 Vias)
+                <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Baixar Ordem Oficial em PDF (2 Vias)">
+                  <i class="bi bi-file-earmark-pdf"></i> Imprimir Ordem (2 Vias)
                 </button>
 
                 ${g.status === 'IMPRESSO' ? `
@@ -1275,7 +1225,7 @@
         document.getElementById("sysReimpMotivo").value = "";
         new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
       } else if (res && res.success) {
-        renderizarEImprimirOrdemCompleta(res.ordem);
+        gerarEBaixarPdfOficial(res.ordem);
         loadControleOrders();
       } else {
         showSysAlert("Erro de Impressão", res ? res.error : "Falha na impressão.", "danger");
@@ -1295,113 +1245,137 @@
     acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
   }
 
-  // RENDERIZAÇÃO COM SOMA EXATA E REMOÇÃO DE CABEÇALHOS DO NAVEGADOR
-  function renderizarEImprimirOrdemCompleta(ordem) {
-    const printDiv = document.getElementById("printableArea");
-    let html = "";
+  // =========================================================================
+  // GERADOR NATIVO DE PDF VETORIZADO (JSPDF) - 100% LIMPO SEM CABEÇALHOS DO GOOGLE
+  // =========================================================================
+  function gerarEBaixarPdfOficial(ordem) {
+    const { jsPDF } = window.jspdf;
+    // A4 Landscape: 297mm x 210mm
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-    // SOMA MATEMÁTICA EXATA DOS ITENS DA ORDEM IMPRESSA
+    // Cálculo exato da soma matemática dos itens
     let somaRealOrdem = 0;
-    ordem.itens.forEach(it => {
+    const tableBody = ordem.itens.map(it => {
       let numStr = String(it.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
       somaRealOrdem += (parseFloat(numStr) || 0);
+
+      return [
+        `${it.codigo}  ${it.descricao}`,
+        it.localizacao || "",
+        it.lote || "",
+        it.validade || "",
+        it.origem || "",
+        it.destino || "",
+        it.quantidade || "0",
+        it.pedidoWms || ""
+      ];
     });
 
-    const totalCalculadoFmt = somaRealOrdem.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const totalFmt = somaRealOrdem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    // Adiciona a linha final com o Total Geral
+    tableBody.push([
+      { content: "Total Geral:", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
+      { content: totalFmt, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
+      { content: "", styles: { fillColor: [240, 240, 240] } }
+    ]);
 
     for (let via = 1; via <= 2; via++) {
-      html += `
-        <div class="print-page-wrapper page-break" style="font-family: Arial, sans-serif; color: #000;">
-          
-          <table style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
-            <tr>
-              <td style="vertical-align: top;">
-                <h2 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase;">
-                  REGISTRO DE ABASTECIMENTO DE FABRICA
-                </h2>
-                <div style="font-size: 11px; margin-top: 3px;">
-                  <strong>Data:</strong> ${ordem.data} &nbsp;|&nbsp; <strong>Sistema:</strong> ${ordem.sistema}
-                </div>
-              </td>
-              <td style="text-align: right; vertical-align: top;">
-                <h2 style="margin: 0; font-size: 16px; font-weight: bold;">
-                  Nr. ${ordem.nsa}
-                </h2>
-                <div style="font-size: 11px; margin-top: 3px;">
-                  <strong>Documento:</strong> ${ordem.documento} &nbsp;|&nbsp; <strong>RAF - V1.0</strong>
-                  <span style="display: block; font-weight: bold; font-size: 11px; color: #333; margin-top: 2px;">VIA ${via} DE 2</span>
-                </div>
-              </td>
-            </tr>
-          </table>
+      if (via === 2) doc.addPage("a4", "landscape");
 
-          <div style="background-color: #222 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 4px 8px; font-size: 12px; font-weight: bold; margin-bottom: 6px;">
-            Estabelecimento:&nbsp;&nbsp;&nbsp;&nbsp;${ordem.estabelecimento}
-          </div>
+      // 1. Cabeçalho Principal
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("REGISTRO DE ABASTECIMENTO DE FABRICA", 12, 14);
 
-          <table class="raf-table">
-            <thead>
-              <tr>
-                <th style="width: 32%; text-align: left;">Produto</th>
-                <th style="width: 10%;">Localizacao</th>
-                <th style="width: 13%;">Lote</th>
-                <th style="width: 10%;">Validade</th>
-                <th style="width: 7%;">Origem</th>
-                <th style="width: 7%;">Destino</th>
-                <th style="width: 11%;">Quantidade</th>
-                <th style="width: 10%;">Pedido WMS</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${ordem.itens.map(it => `
-                <tr>
-                  <td><strong>${it.codigo}</strong> &nbsp; ${it.descricao}</td>
-                  <td style="text-align: center;">${it.localizacao || ''}</td>
-                  <td style="text-align: center;"><strong>${it.lote}</strong></td>
-                  <td style="text-align: center;">${it.validade}</td>
-                  <td style="text-align: center;">${it.origem}</td>
-                  <td style="text-align: center;">${it.destino}</td>
-                  <td style="text-align: right; font-weight: bold;">${it.quantidade}</td>
-                  <td style="text-align: center;">${it.pedidoWms}</td>
-                </tr>
-              `).join('')}
-              <tr style="font-weight: bold; background-color: #f2f2f2; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-                <td colspan="6" style="text-align: right; font-size: 12px; padding: 6px;">Total Geral:</td>
-                <td style="text-align: right; font-size: 12px; padding: 6px;">${totalCalculadoFmt}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
+      doc.setFontSize(14);
+      doc.text(`Nr. ${ordem.nsa}`, 285, 14, { align: "right" });
 
-          <div style="margin-top: 14px; font-size: 11px;">
-            <em>Observação:</em>
-            <div style="border: 1px solid #000; height: 50px; width: 100%; margin-top: 2px;"></div>
-          </div>
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Data: ${ordem.data}  |  Sistema: ${ordem.sistema}`, 12, 19);
+      doc.text(`Documento: ${ordem.documento}  |  RAF - V1.0`, 285, 19, { align: "right" });
 
-          <table style="width: 100%; margin-top: 40px; font-size: 11px; text-align: center;">
-            <tr>
-              <td style="width: 45%;">
-                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
-                  Responsável do Envio
-                </div>
-              </td>
-              <td style="width: 10%;"></td>
-              <td style="width: 45%;">
-                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
-                  Responsável do Recebimento
-                </div>
-              </td>
-            </tr>
-          </table>
+      doc.setFont("helvetica", "bold");
+      doc.text(`VIA ${via} DE 2`, 285, 23.5, { align: "right" });
 
-        </div>
-      `;
+      // Linha separadora superior
+      doc.setLineWidth(0.5);
+      doc.line(12, 25, 285, 25);
+
+      // Faixa preta com Estabelecimento
+      doc.setFillColor(34, 34, 34);
+      doc.rect(12, 27, 273, 6, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text(`Estabelecimento:    ${ordem.estabelecimento}`, 15, 31.2);
+
+      // Reseta cor de texto
+      doc.setTextColor(0, 0, 0);
+
+      // 2. Tabela de Materiais
+      doc.autoTable({
+        startY: 35,
+        margin: { left: 12, right: 12 },
+        head: [["Produto", "Localizacao", "Lote", "Validade", "Origem", "Destino", "Quantidade", "Pedido WMS"]],
+        body: tableBody,
+        theme: "grid",
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 1.6,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
+          textColor: [0, 0, 0]
+        },
+        headStyles: {
+          fillColor: [34, 34, 34],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center"
+        },
+        columnStyles: {
+          0: { cellWidth: 90, halign: "left" },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 32, halign: "center", fontStyle: "bold" },
+          3: { cellWidth: 26, halign: "center" },
+          4: { cellWidth: 20, halign: "center" },
+          5: { cellWidth: 20, halign: "center" },
+          6: { cellWidth: 31, halign: "right", fontStyle: "bold" },
+          7: { cellWidth: 30, halign: "center" }
+        }
+      });
+
+      // Posição final após a tabela
+      let finalY = doc.lastAutoTable.finalY + 4;
+      if (finalY > 170) finalY = 170;
+
+      // 3. Campo de Observação
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
+      doc.text("Observação:", 12, finalY);
+      doc.rect(12, finalY + 1.5, 273, 10);
+
+      // 4. Assinaturas
+      const signY = finalY + 22;
+      doc.line(30, signY, 115, signY);
+      doc.line(180, signY, 265, signY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.text("Responsável do Envio", 72.5, signY + 4, { align: "center" });
+      doc.text("Responsável do Recebimento", 222.5, signY + 4, { align: "center" });
     }
 
-    printDiv.innerHTML = html;
-    printDiv.classList.remove("d-none");
-    window.print();
-    printDiv.classList.add("d-none");
+    // Baixa o arquivo PDF vetorizado limpo e abre o documento
+    const nomeArquivo = `Ordem_${ordem.nsa}.pdf`;
+    doc.save(nomeArquivo);
+
+    showSysAlert(
+      "Ordem Gerada com Sucesso!",
+      `O arquivo oficial <strong>${nomeArquivo}</strong> com as <strong>2 Vias</strong> foi baixado na sua máquina.<br>Você pode abri-lo e imprimir limpo, sem links ou datas nos cantos.`,
+      "success"
+    );
   }
 
   async function loadAuditPage(page) {
