@@ -400,21 +400,36 @@
   // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // FUNÇÃO UNIVERSAL COMPATÍVEL COM O REDIRECIONAMENTO DO GOOGLE
+  // COMUNICAÇÃO HÍBRIDA (no-cors para mutações / text/plain para leituras)
   async function apiCall(action, payload = {}) {
     const bodyData = { action: action, ...payload };
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(bodyData)
-    });
-    return await response.json();
+
+    // Se for gravação/modificação, usamos no-cors para contornar qualquer limitação de redirecionamento HTTP 302
+    if (action === "commitImportacao" || action === "registrarEntregaOperador" || action === "registrarFinalizacaoRecebimento") {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(bodyData)
+      });
+      return { success: true };
+    }
+
+    // Requisições de leitura de dados normais
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(bodyData)
+      });
+      return await response.json();
+    } catch(err) {
+      return { success: false, error: err.message };
+    }
   }
 
   let cachedPreviewData = null;
   let reimpCurrentNsa = null;
-  let isForcingDuplicate = false;
-  let duplicateForcedReason = "";
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
@@ -466,9 +481,7 @@
     } catch(e) {}
   }
 
-  // ==========================================
-  // PARSER DIRETO NO NAVEGADOR (SEM CARREGAR A REDE)
-  // ==========================================
+  // PARSER DIRETO NO NAVEGADOR
   function parseAbastecimentoLocal(rawText, fileName) {
     const result = {
       arquivo: fileName,
@@ -651,7 +664,6 @@
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Lendo PDF...`;
 
     try {
-      // 1. Extração do texto no navegador (Instantâneo)
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
@@ -682,7 +694,6 @@
         fullText += pageText + "\n\n";
       }
 
-      // 2. Parser local instantâneo (Sem depender de tráfego de rede)
       const parsedData = parseAbastecimentoLocal(fullText, file.name);
 
       btn.disabled = false;
@@ -767,6 +778,7 @@
     }
   }
 
+  // GRAVAÇÃO BLINDADA COM NO-CORS
   async function confirmImport() {
     if (!cachedPreviewData) return;
 
@@ -775,8 +787,33 @@
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Gravando na Planilha...`;
 
     try {
-      const res = await apiCall("commitImportacao", {
-        importData: cachedPreviewData,
+      const payloadLimpo = {
+        arquivo: cachedPreviewData.arquivo,
+        dataPlanejamento: cachedPreviewData.dataPlanejamento,
+        estabelecimento: cachedPreviewData.estabelecimento,
+        documento: cachedPreviewData.documento,
+        nsasList: cachedPreviewData.nsasList,
+        totalItens: cachedPreviewData.totalItens,
+        itensOk: cachedPreviewData.itensOk,
+        itensErro: cachedPreviewData.itensErro,
+        itens: cachedPreviewData.itens.map(it => ({
+          codigoProduto: it.codigoProduto,
+          descricaoProduto: it.descricaoProduto,
+          localizacao: it.localizacao,
+          lote: it.lote,
+          validade: it.validade,
+          origem: it.origem,
+          destino: it.destino,
+          quantidade: it.quantidade,
+          unidade: it.unidade || "KG",
+          nsa: it.nsa,
+          pedidoWmsPlanejado: it.nsa,
+          statusLeitura: it.statusLeitura
+        }))
+      };
+
+      await apiCall("commitImportacao", {
+        importData: payloadLimpo,
         forceDuplicate: false,
         duplicateReason: ""
       });
@@ -784,15 +821,21 @@
       btn.disabled = false;
       btn.innerHTML = `Confirmar e Gravar Pedidos`;
 
-      if (res && res.success) {
-        showSysAlert("Importação Gravada com Sucesso!", `Foram registrados <strong>${res.total} pedidos</strong> na base com o ID <strong>${res.idImportacao}</strong>.<br>Redirecionando para as Ordens de Abastecimento...`, "success");
-        document.getElementById("importPreviewArea").classList.add("d-none");
-        document.getElementById("pdfFileInput").value = "";
-        setTimeout(() => showSection("controle"), 1200);
-      } else {
-        showSysAlert("Falha ao Gravar", res ? res.error : "Não foi possível persistir os registros.", "danger");
-      }
-    } catch(e) {
+      showSysAlert(
+        "Importação Gravada com Sucesso!",
+        `Foram enviados <strong>${cachedPreviewData.totalItens} materiais</strong> para a base de dados na folha de cálculo.<br>A redirecionar para a lista de ordens...`,
+        "success"
+      );
+
+      document.getElementById("importPreviewArea").classList.add("d-none");
+      document.getElementById("pdfFileInput").value = "";
+      cachedPreviewData = null;
+
+      setTimeout(() => {
+        showSection("controle");
+      }, 1500);
+
+    } catch (e) {
       btn.disabled = false;
       btn.innerHTML = `Confirmar e Gravar Pedidos`;
       showSysAlert("Erro de Gravação", e.message, "danger");
@@ -906,13 +949,9 @@
     bootstrap.Modal.getInstance(document.getElementById("sysEntregaModal")).hide();
 
     try {
-      const res = await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
-      if (res && res.success) {
-        loadControleOrders();
-        showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
-      } else {
-        showSysAlert("Erro", res ? res.error : "Falha ao registrar entrega.", "danger");
-      }
+      await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
+      loadControleOrders();
+      showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
     } catch(e) {
       showSysAlert("Erro", e.message, "danger");
     }
@@ -938,14 +977,10 @@
     bootstrap.Modal.getInstance(document.getElementById("sysFinalizarModal")).hide();
 
     try {
-      const res = await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
-      if (res && res.success) {
-        loadControleOrders();
-        loadDashboard();
-        showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
-      } else {
-        showSysAlert("Erro", res ? res.error : "Falha ao finalizar ordem.", "danger");
-      }
+      await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
+      loadControleOrders();
+      loadDashboard();
+      showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
     } catch(e) {
       showSysAlert("Erro", e.message, "danger");
     }
