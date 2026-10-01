@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Torre de Controle - Abastecimento de Fábrica</title>
+  <!-- FAVICON PERSONALIZADO (ESCUDO AZUL) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  </script>
+  <style>
+    body { background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; }
+    .sidebar { min-height: 100vh; background-color: #0f172a; color: #fff; }
+    .sidebar .nav-link { color: #94a3b8; font-weight: 500; padding: 12px 20px; border-radius: 6px; margin: 4px 10px; cursor: pointer; }
+    .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #1e293b; }
+    .sidebar .nav-link i { margin-right: 10px; }
+    .main-content { padding: 25px 35px; }
+    .card-kpi { border: none; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .status-badge { font-size: 0.78rem; padding: 5px 12px; border-radius: 20px; font-weight: 600; display: inline-block; }
+    
+    .badge-PENDENTEIMPRESSAO, .badge-IMPORTADO { background-color: #fef3c7; color: #92400e; }
+    .badge-IMPRESSO { background-color: #e0e7ff; color: #3730a3; }
+    .badge-ENTREGUEAOOPERADOR { background-color: #ffedd5; color: #9a3412; }
+    .badge-FINALIZADO { background-color: #dcfce7; color: #166534; }
+    
+    .input-edit-preview { font-size: 0.85rem; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; }
+    .input-edit-preview:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+    
+    .sys-modal .modal-content { border-radius: 12px; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    .sys-modal .modal-body { padding: 24px; }
+    .icon-container { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    .icon-container.success { background-color: #dcfce7; color: #16a34a; }
+    .icon-container.danger { background-color: #fee2e2; color: #dc2626; }
+    .icon-container.warning { background-color: #fef3c7; color: #d97706; }
+    .icon-container.info { background-color: #e0e7ff; color: #4f46e5; }
+    
+    @page {
+      size: A4 landscape;
+      margin: 8mm 12mm;
+    }
+    @media print {
+      body * { visibility: hidden !important; }
+      #printableArea, #printableArea * { visibility: visible !important; }
+      #printableArea { 
+        position: absolute; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        display: block !important; 
+        font-family: Arial, sans-serif !important;
+        color: #000 !important;
+      }
+      .page-break { page-break-after: always; }
+      .raf-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+      .raf-table th { background-color: #222 !important; color: #fff !important; -webkit-print-color-adjust: exact; padding: 6px 8px; border: 1px solid #000; text-align: center; }
+      .raf-table td { padding: 5px 8px; border: 1px solid #000; }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <!-- BARRA LATERAL -->
+    <div class="col-md-2 p-0 sidebar">
+      <div class="p-3 text-center border-bottom border-secondary border-opacity-25">
+        <h6 class="fw-bold tracking-wide m-0 text-white"><i class="bi bi-shield-check text-primary"></i> TORRE DE CONTROLE</h6>
+        <small class="text-secondary">Abastecimento de Fábrica</small>
+      </div>
+      <div class="p-3 text-center border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25">
+        <small class="d-block text-secondary">Usuário Ativo:</small>
+        <strong id="sessionUserEmail" class="text-light small">ROMÁRIO SILVA</strong>
+      </div>
+      <ul class="nav flex-column mt-3">
+        <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('import', this)"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Impressão)</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
+      </ul>
+    </div>
+
+    <!-- ÁREA PRINCIPAL -->
+    <div class="col-md-10 main-content">
+      
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard" class="content-section">
+        <h4 class="fw-bold mb-4">Visão Geral da Torre de Controle</h4>
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card card-kpi p-3 bg-white">
+              <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
+              <h3 id="kpi-total" class="fw-bold my-1">-</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi p-3 bg-white border-start border-warning border-4">
+              <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
+              <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">-</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi p-3 bg-white border-start border-info border-4">
+              <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
+              <h3 id="kpi-impressos" class="fw-bold my-1 text-info">-</h3>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card card-kpi p-3 bg-white border-start border-success border-4">
+              <span class="text-secondary small fw-bold">FINALIZADOS</span>
+              <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">-</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORTAÇÃO -->
+      <div id="sec-import" class="content-section d-none">
+        <h4 class="fw-bold mb-3">Importação do Planejamento de Fábrica</h4>
+        <div class="card card-kpi p-4 bg-white mb-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <label class="form-label fw-bold">Selecione o PDF gerado pelo sistema:</label>
+              <input type="file" id="pdfFileInput" class="form-control" accept="application/pdf">
+            </div>
+            <div class="col-md-4 mt-4">
+              <button id="btnProcessPdf" class="btn btn-primary w-100" onclick="processPdfFile()">
+                <i class="bi bi-gear-fill"></i> Processar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="importPreviewArea" class="d-none">
+          <div id="duplicateAlertBox" class="d-none mb-3"></div>
+          
+          <div class="alert alert-info border-0 shadow-sm">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-1"></i> Prévia do Planejamento Processado</h6>
+            <div class="row g-2 mt-1" id="previewHeaderInfo"></div>
+            <small class="text-muted d-block mt-2">
+              <i class="bi bi-pencil-square"></i> <strong>Modo Assistente Ativo:</strong> Se necessário, ajuste Lote, Validade e Quantidade antes de confirmar.
+            </small>
+          </div>
+
+          <div class="table-responsive bg-white rounded shadow-sm p-3 mb-3">
+            <table class="table table-sm table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>NSA (Pedido WMS)</th>
+                  <th>Código</th>
+                  <th>Descrição</th>
+                  <th>Lote (Editável)</th>
+                  <th>Validade (Editável)</th>
+                  <th>Origem &rarr; Destino</th>
+                  <th>Quantidade (KG)</th>
+                  <th>Status Leitura</th>
+                </tr>
+              </thead>
+              <tbody id="previewTableBody"></tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button class="btn btn-secondary px-4" onclick="cancelImport()">Cancelar</button>
+            <button id="btnConfirmImport" class="btn btn-success fw-bold px-4" onclick="confirmImport()">Confirmar e Enviar para Impressão</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLE DE PEDIDOS WMS (AGRUPADO POR NSA) -->
+      <div id="sec-controle" class="content-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="fw-bold m-0">Ordens de Abastecimento (Por Pedido WMS)</h4>
+          <span class="badge bg-light text-secondary border"><i class="bi bi-info-circle me-1"></i> Ordens finalizadas são arquivadas automaticamente</span>
+        </div>
+        
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+              <input type="text" id="filtroNsaCtrl" class="form-control" placeholder="Buscar por NSA (ex: NSA-348)...">
+            </div>
+            <div class="col-md-4">
+              <select id="filtroStatusCtrl" class="form-select">
+                <option value="ATIVOS" selected>Somente Pendências da Assistente (Ocultar Finalizados)</option>
+                <option value="PENDENTE IMPRESSÃO">Aguardando Impressão</option>
+                <option value="IMPRESSO">Impresso (Com a Assistente)</option>
+                <option value="ENTREGUE AO OPERADOR">Entregue ao Operador</option>
+                <option value="FINALIZADO">Ver Apenas Finalizados</option>
+                <option value="TODOS">Ver Todos os Registros</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-dark w-100" onclick="loadControleOrders()"><i class="bi bi-search"></i> Filtrar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive bg-white rounded shadow-sm p-3">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Pedido WMS / NSA</th>
+                <th>Data Planejamento</th>
+                <th>Qtd Itens</th>
+                <th>Peso Total</th>
+                <th>Status Atual</th>
+                <th style="min-width: 250px;">Ações da Ordem</th>
+              </tr>
+            </thead>
+            <tbody id="tableControleBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- AUDITORIA COM FILTRO DE PERÍODO E PAGINAÇÃO -->
+      <div id="sec-historico" class="content-section d-none">
+        <h4 class="fw-bold mb-3">Trilha de Auditoria e Histórico Operacional</h4>
+        
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-secondary mb-1">Data Inicial:</label>
+              <input type="date" id="auditDataInicio" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-secondary mb-1">Data Final:</label>
+              <input type="date" id="auditDataFim" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold text-secondary mb-1">Buscar NSA:</label>
+              <input type="text" id="auditNsaBusca" class="form-control form-control-sm" placeholder="Ex: NSA-332">
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-dark btn-sm w-100" onclick="loadAuditPage(1)">
+                <i class="bi bi-funnel-fill"></i> Filtrar Auditoria
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive bg-white rounded shadow-sm p-3">
+          <table class="table table-sm table-striped align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Data/Hora</th>
+                <th>NSA</th>
+                <th>Ação</th>
+                <th>De &rarr; Para</th>
+                <th>Usuário</th>
+                <th>Área</th>
+                <th>Observação Operacional</th>
+              </tr>
+            </thead>
+            <tbody id="tableHistoryBody"></tbody>
+          </table>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+            <small id="auditTotalInfo" class="text-muted">Carregando...</small>
+            <nav>
+              <ul class="pagination pagination-sm m-0" id="auditPaginationUl"></ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAIS DO SISTEMA -->
+<div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+    <div class="modal-content">
+      <div class="modal-body text-center pt-4">
+        <div id="sysAlertIcon" class="icon-container mx-auto"></div>
+        <h5 id="sysAlertTitle" class="fw-bold text-dark mb-2">Mensagem</h5>
+        <div id="sysAlertMessage" class="text-secondary mb-0 small"></div>
+      </div>
+      <div class="modal-footer justify-content-center border-0 pt-0">
+        <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade sys-modal" id="sysDetalhesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h5 class="modal-title fw-bold" id="detalhesModalTitle">Itens do Pedido WMS</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Produto</th>
+                <th>Lote</th>
+                <th>Validade</th>
+                <th>Origem &rarr; Destino</th>
+                <th>Quantidade (KG)</th>
+              </tr>
+            </thead>
+            <tbody id="detalhesModalBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade sys-modal" id="sysEntregaModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+    <div class="modal-content">
+      <div class="modal-body pt-4">
+        <div class="icon-container warning mx-auto">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark text-center mb-1">Entregar Ordem ao Operador</h5>
+        <p class="text-secondary text-center small mb-3">Informe o operador de empilhadeira responsável pela separação física deste lote.</p>
+        
+        <input type="hidden" id="entregaNsaInput">
+        <label class="form-label fw-bold small text-dark">Nome do Operador Separador (Obrigatório):</label>
+        <input type="text" id="entregaOperadorNome" class="form-control" placeholder="Ex: Valdir, Carlos, Daniel...">
+      </div>
+      <div class="modal-footer justify-content-end border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarEntregaOperadorAcao()">Confirmar Entrega</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade sys-modal" id="sysFinalizarModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+    <div class="modal-content">
+      <div class="modal-body pt-4">
+        <div class="icon-container success mx-auto">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark text-center mb-1">Finalizar Ordem de Abastecimento</h5>
+        <p class="text-secondary text-center small mb-3">Após a finalização, a ordem sairá da sua lista ativa de trabalho e ficará salva no histórico.</p>
+        
+        <input type="hidden" id="finalizarNsaInput">
+        <div class="mb-2">
+          <label class="form-label fw-bold small text-dark">Responsável pelo Recebimento na Fábrica (Obrigatório):</label>
+          <input type="text" id="finalizarRecebedorNome" class="form-control" placeholder="Ex: Paula, Reinaldo, Operador de Produção...">
+        </div>
+        <div>
+          <label class="form-label small text-secondary">Observações / Não conformidades (Opcional):</label>
+          <textarea id="finalizarObsInput" class="form-control" rows="2" placeholder="Opcional..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success fw-bold px-3" onclick="confirmarFinalizacaoAcao()">Finalizar e Arquivar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade sys-modal" id="sysDuplicateModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+    <div class="modal-content">
+      <div class="modal-body pt-4">
+        <div class="icon-container warning mx-auto">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark text-center mb-2">Este Planejamento Já Foi Importado!</h5>
+        <div id="sysDupDesc" class="text-secondary text-center small mb-3"></div>
+        
+        <div class="bg-light p-3 rounded mb-3 border">
+          <small class="text-dark d-block fw-bold mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i> Controle de Auditoria:</small>
+          <small class="text-muted d-block">Para subir este arquivo novamente, descreva a justificativa operacional:</small>
+        </div>
+
+        <label class="form-label fw-bold small text-dark">Motivo da Reimportação (Obrigatório):</label>
+        <textarea id="sysDupMotivoInput" class="form-control" rows="2" placeholder="Ex: Substituição de lotes autorizada pela gerência..."></textarea>
+      </div>
+      <div class="modal-footer justify-content-end border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" onclick="cancelImport()">Cancelar</button>
+        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarImportacaoComDuplicidade()">Importar Mesmo Assim</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade sys-modal" id="sysReimpressaoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+    <div class="modal-content">
+      <div class="modal-body pt-4">
+        <div class="icon-container warning mx-auto">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+        </div>
+        <h5 class="fw-bold text-dark text-center mb-2">Atenção: Ordem Completa Já Impressa</h5>
+        <p id="sysReimpDesc" class="text-secondary text-center small mb-3"></p>
+        
+        <label class="form-label fw-bold small text-dark">Informe o motivo da reimpressão da ordem (Obrigatório):</label>
+        <textarea id="sysReimpMotivo" class="form-control" rows="2" placeholder="Ex: Via rasurada na fábrica, reimpressão para operador..."></textarea>
+      </div>
+      <div class="modal-footer justify-content-end border-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarReimpressaoAcao()">Confirmar Reimpressão (2 Vias)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printableArea" class="d-none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
+
+  async function apiCall(action, payload = {}) {
+    const bodyData = { action: action, ...payload };
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(bodyData)
+    });
+    return await response.json();
+  }
+
+  let cachedPreviewData = null;
+  let reimpCurrentNsa = null;
+  let isForcingDuplicate = false;
+  let duplicateForcedReason = "";
+  let cacheGruposNsa = {};
+  let currentAuditPage = 1;
+
+  const SVGS = {
+    success: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+    danger: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+    warning: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+    info: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`
+  };
+
+  function showSysAlert(title, message, type = "info") {
+    const iconDiv = document.getElementById("sysAlertIcon");
+    iconDiv.className = `icon-container ${type} mx-auto`;
+    iconDiv.innerHTML = SVGS[type] || SVGS.info;
+    document.getElementById("sysAlertTitle").innerText = title;
+    document.getElementById("sysAlertMessage").innerHTML = message;
+    new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
+  }
+
+  document.addEventListener("DOMContentLoaded", async function() {
+    try {
+      const user = await apiCall("getUserSession");
+      if (user && user.email) {
+        document.getElementById("sessionUserEmail").innerText = user.email + " (" + user.perfil + ")";
+      }
+    } catch(e) {}
+    loadDashboard();
+  });
+
+  function showSection(sectionId, element) {
+    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
+    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
+    
+    document.getElementById("sec-" + sectionId).classList.remove("d-none");
+    if (element) element.classList.add("active");
+
+    if (sectionId === "dashboard") loadDashboard();
+    if (sectionId === "controle") loadControleOrders();
+    if (sectionId === "historico") loadAuditPage(1);
+  }
+
+  async function loadDashboard() {
+    try {
+      const metrics = await apiCall("getDashboardMetrics");
+      document.getElementById("kpi-total").innerText = metrics.total || 0;
+      document.getElementById("kpi-pendente").innerText = metrics.pendenteImpressao || 0;
+      document.getElementById("kpi-impressos").innerText = metrics.impressos || 0;
+      document.getElementById("kpi-finalizados").innerText = metrics.finalizados || 0;
+    } catch(e) {}
+  }
+
+  async function extractTextFromPdf(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const items = textContent.items.filter(it => it.str && it.str.trim().length > 0);
+      
+      items.sort((a, b) => {
+        const yDiff = b.transform[5] - a.transform[5];
+        if (Math.abs(yDiff) > 5) return yDiff;
+        return a.transform[4] - b.transform[4];
+      });
+
+      let currentLineY = null;
+      let pageText = "";
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (currentLineY === null || Math.abs(item.transform[5] - currentLineY) > 5) {
+          pageText += (currentLineY === null ? "" : "\n") + item.str;
+          currentLineY = item.transform[5];
+        } else {
+          pageText += " " + item.str;
+        }
+      }
+      fullText += pageText + "\n\n";
+    }
+    return fullText;
+  }
+
+  async function processPdfFile() {
+    const fileInput = document.getElementById("pdfFileInput");
+    if (!fileInput.files.length) {
+      showSysAlert("Atenção", "Por favor, selecione um arquivo PDF do seu computador.", "warning");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const btn = document.getElementById("btnProcessPdf");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Processando PDF...`;
+
+    try {
+      const extractedText = await extractTextFromPdf(file);
+      const response = await apiCall("previewImportacaoTexto", { extractedText: extractedText, fileName: file.name });
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-gear-fill"></i> Processar PDF`;
+
+      if (response && response.success) {
+        cachedPreviewData = response;
+
+        if (response.duplicidades && response.duplicidades.length > 0) {
+          const det = response.duplicidades[0].detalhe || {};
+          const dataStr = det.data || 'Data anterior registrada';
+
+          document.getElementById("sysDupDesc").innerHTML = `
+            Foram detectados <strong>${response.duplicidades.length} registros</strong> deste planejamento já salvos na planilha.<br><br>
+            <div class="text-start bg-white p-2 rounded border small">
+              <strong>Arquivo anterior:</strong> ${det.arquivo || 'Desconhecido'}<br>
+              <strong>Usuário que importou:</strong> ${det.usuario || 'Usuário anterior'}<br>
+              <strong>Data de Importação:</strong> ${dataStr}
+            </div>
+          `;
+          document.getElementById("sysDupMotivoInput").value = "";
+          new bootstrap.Modal(document.getElementById("sysDuplicateModal")).show();
+        } else {
+          isForcingDuplicate = false;
+          duplicateForcedReason = "";
+          renderPreview(response);
+
+          showSysAlert(
+            "PDF Processado com Sucesso!",
+            `Foram identificados <strong>${response.totalItens} materiais</strong> distribuídos em <strong>${response.nsasList.length} Pedidos WMS/NSAs</strong>.<br>Conferência liberada na prévia.`,
+            "success"
+          );
+        }
+
+      } else {
+        showSysAlert("Não foi possível processar o PDF", response ? response.error : "Falha na leitura.", "danger");
+      }
+
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-gear-fill"></i> Processar PDF`;
+      showSysAlert("Erro na Leitura", err.message, "danger");
+    }
+  }
+
+  function confirmarImportacaoComDuplicidade() {
+    const motivo = document.getElementById("sysDupMotivoInput").value;
+    if (!motivo || motivo.trim().length < 5) {
+      showSysAlert("Validação Obrigatória", "É obrigatório preencher um motivo com no mínimo 5 caracteres para importar dados duplicados.", "warning");
+      return;
+    }
+
+    isForcingDuplicate = true;
+    duplicateForcedReason = motivo.trim();
+    bootstrap.Modal.getInstance(document.getElementById("sysDuplicateModal")).hide();
+    
+    const dupBox = document.getElementById("duplicateAlertBox");
+    dupBox.className = "alert alert-warning border-0 shadow-sm d-block";
+    dupBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Modo de Duplicidade Autorizado:</strong> ${duplicateForcedReason}`;
+
+    renderPreview(cachedPreviewData);
+
+    showSysAlert("Duplicidade Autorizada", `O arquivo foi liberado para prévia.<br><strong>Justificativa:</strong> ${duplicateForcedReason}`, "warning");
+  }
+
+  function renderPreview(data) {
+    document.getElementById("importPreviewArea").classList.remove("d-none");
+    document.getElementById("previewHeaderInfo").innerHTML = `
+      <div class="col-md-3"><strong>Arquivo:</strong> ${data.arquivo}</div>
+      <div class="col-md-3"><strong>Data Planejamento:</strong> ${data.dataPlanejamento}</div>
+      <div class="col-md-3"><strong>Itens Identificados:</strong> ${data.totalItens}</div>
+      <div class="col-md-3"><strong>Itens com Pendência:</strong> ${data.itensErro}</div>
+    `;
+
+    const tbody = document.getElementById("previewTableBody");
+    tbody.innerHTML = "";
+
+    data.itens.forEach((item, idx) => {
+      const isPendente = item.statusLeitura !== 'OK';
+      tbody.innerHTML += `
+        <tr class="${isPendente ? 'table-warning' : ''}">
+          <td><span class="badge bg-secondary">${item.nsa}</span></td>
+          <td><strong>${item.codigoProduto}</strong></td>
+          <td><small>${item.descricaoProduto}</small></td>
+          <td>
+            <input type="text" class="input-edit-preview" style="width: 140px; font-weight: bold;" 
+                   value="${item.lote || ''}" 
+                   placeholder="Lote"
+                   onchange="updatePreviewItem(${idx}, 'lote', this.value)">
+          </td>
+          <td>
+            <input type="text" class="input-edit-preview" style="width: 110px;" 
+                   value="${item.validade || ''}" 
+                   placeholder="DD/MM/AAAA"
+                   onchange="updatePreviewItem(${idx}, 'validade', this.value)">
+          </td>
+          <td>${item.origem} &rarr; ${item.destino}</td>
+          <td>
+            <input type="text" class="input-edit-preview" style="width: 90px; font-weight: bold;" 
+                   value="${item.quantidade || ''}" 
+                   placeholder="Qtd"
+                   onchange="updatePreviewItem(${idx}, 'quantidade', this.value)">
+          </td>
+          <td id="statusCell_${idx}">
+            <span class="badge ${item.statusLeitura === 'OK' ? 'bg-success' : 'bg-danger'}">${item.statusLeitura}</span>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function updatePreviewItem(index, campo, valor) {
+    if (!cachedPreviewData || !cachedPreviewData.itens[index]) return;
+    cachedPreviewData.itens[index][campo] = valor.trim();
+    const it = cachedPreviewData.itens[index];
+    const ok = Boolean(it.codigoProduto && it.lote && it.validade && it.quantidade);
+    it.statusLeitura = ok ? "OK" : "PENDENTE_REVISAO";
+    const badgeCell = document.getElementById(`statusCell_${index}`);
+    if (badgeCell) {
+      badgeCell.innerHTML = `<span class="badge ${ok ? 'bg-success' : 'bg-danger'}">${it.statusLeitura}</span>`;
+    }
+  }
+
+  async function confirmImport() {
+    if (!cachedPreviewData) return;
+
+    const btn = document.getElementById("btnConfirmImport");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Gravando...`;
+
+    try {
+      const res = await apiCall("commitImportacao", {
+        importData: cachedPreviewData,
+        forceDuplicate: isForcingDuplicate,
+        duplicateReason: duplicateForcedReason
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `Confirmar e Enviar para Impressão`;
+
+      if (res && res.success) {
+        showSysAlert("Importação Gravada com Sucesso!", `Foram registrados <strong>${res.total} pedidos</strong> na base de dados com o ID <strong>${res.idImportacao}</strong>.<br>Redirecionando para as Ordens de Abastecimento...`, "success");
+        document.getElementById("importPreviewArea").classList.add("d-none");
+        document.getElementById("pdfFileInput").value = "";
+        document.getElementById("duplicateAlertBox").className = "d-none";
+        setTimeout(() => showSection("controle"), 1200);
+      } else {
+        showSysAlert("Falha ao Gravar", res ? res.error : "Não foi possível persistir os registros.", "danger");
+      }
+    } catch(e) {
+      btn.disabled = false;
+      btn.innerHTML = `Confirmar e Enviar para Impressão`;
+      showSysAlert("Erro de Gravação", e.message, "danger");
+    }
+  }
+
+  function cancelImport() {
+    document.getElementById("importPreviewArea").classList.add("d-none");
+    document.getElementById("pdfFileInput").value = "";
+    document.getElementById("duplicateAlertBox").className = "d-none";
+    cachedPreviewData = null;
+    isForcingDuplicate = false;
+    duplicateForcedReason = "";
+  }
+
+  async function loadControleOrders() {
+    const filters = {
+      nsa: document.getElementById("filtroNsaCtrl").value,
+      status: document.getElementById("filtroStatusCtrl").value
+    };
+
+    try {
+      const grupos = await apiCall("getOrdersGroupedByNsa", { filters: filters });
+      const tbody = document.getElementById("tableControleBody");
+      tbody.innerHTML = "";
+      cacheGruposNsa = {};
+      
+      if (!grupos || grupos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhuma ordem pendente de ação encontrada.</td></tr>`;
+        return;
+      }
+
+      grupos.forEach(g => {
+        cacheGruposNsa[g.nsa] = g;
+        const totalKgFmt = g.totalKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        tbody.innerHTML += `
+          <tr>
+            <td>
+              <strong class="text-primary fs-6">${g.nsa}</strong>
+              <small class="d-block text-muted">${g.documento}</small>
+            </td>
+            <td><strong>${g.dataPlanejamento}</strong></td>
+            <td>
+              <a href="javascript:void(0)" onclick="abrirDetalhesItens('${g.nsa}')" class="badge bg-light text-dark border text-decoration-none">
+                <i class="bi bi-box-seam me-1"></i> ${g.itens.length} materiais
+              </a>
+            </td>
+            <td><strong>${totalKgFmt} KG</strong></td>
+            <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
+            <td>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Imprimir Ordem Completa em 2 vias">
+                  <i class="bi bi-printer"></i> Imprimir Ordem (2 Vias)
+                </button>
+
+                ${g.status === 'IMPRESSO' ? `
+                  <button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalEntregaOperador('${g.nsa}')" title="Registrar nome do operador que recebeu as vias">
+                    <i class="bi bi-person-check"></i> Entregue
+                  </button>
+                ` : ''}
+
+                ${g.status === 'ENTREGUE AO OPERADOR' ? `
+                  <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalFinalizarRecebimento('${g.nsa}')" title="Registrar recebimento na fábrica e arquivar">
+                    <i class="bi bi-check2-all"></i> Finalizar
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    } catch(e) {}
+  }
+
+  function abrirDetalhesItens(nsa) {
+    const g = cacheGruposNsa[nsa];
+    if (!g) return;
+
+    document.getElementById("detalhesModalTitle").innerText = `Itens do Pedido WMS: ${nsa}`;
+    const tbody = document.getElementById("detalhesModalBody");
+    tbody.innerHTML = "";
+
+    g.itens.forEach(it => {
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${it.codigo}</strong> - <small>${it.descricao}</small></td>
+          <td><strong>${it.lote}</strong></td>
+          <td>${it.validade}</td>
+          <td>${it.origem} &rarr; ${it.destino}</td>
+          <td><strong>${it.quantidade} KG</strong></td>
+        </tr>
+      `;
+    });
+
+    new bootstrap.Modal(document.getElementById("sysDetalhesModal")).show();
+  }
+
+  function abrirModalEntregaOperador(nsa) {
+    document.getElementById("entregaNsaInput").value = nsa;
+    document.getElementById("entregaOperadorNome").value = "";
+    new bootstrap.Modal(document.getElementById("sysEntregaModal")).show();
+  }
+
+  async function confirmarEntregaOperadorAcao() {
+    const nsa = document.getElementById("entregaNsaInput").value;
+    const nome = document.getElementById("entregaOperadorNome").value;
+
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do operador separador que retirou as vias.", "warning");
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById("sysEntregaModal")).hide();
+
+    try {
+      const res = await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
+      if (res && res.success) {
+        loadControleOrders();
+        showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao registrar entrega.", "danger");
+      }
+    } catch(e) {
+      showSysAlert("Erro", e.message, "danger");
+    }
+  }
+
+  function abrirModalFinalizarRecebimento(nsa) {
+    document.getElementById("finalizarNsaInput").value = nsa;
+    document.getElementById("finalizarRecebedorNome").value = "";
+    document.getElementById("finalizarObsInput").value = "";
+    new bootstrap.Modal(document.getElementById("sysFinalizarModal")).show();
+  }
+
+  async function confirmarFinalizacaoAcao() {
+    const nsa = document.getElementById("finalizarNsaInput").value;
+    const nome = document.getElementById("finalizarRecebedorNome").value;
+    const obs = document.getElementById("finalizarObsInput").value;
+
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do responsável pelo recebimento na fábrica.", "warning");
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById("sysFinalizarModal")).hide();
+
+    try {
+      const res = await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
+      if (res && res.success) {
+        loadControleOrders();
+        loadDashboard();
+        showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao finalizar ordem.", "danger");
+      }
+    } catch(e) {
+      showSysAlert("Erro", e.message, "danger");
+    }
+  }
+
+  async function acionarImpressaoNsa(nsa, isReimpressao, motivo = "") {
+    try {
+      const res = await apiCall("processarImpressaoOrdemNsa", { numeroNsa: nsa, isReimpressao: isReimpressao, motivo: motivo });
+      if (res && res.requiresConfirmation) {
+        reimpCurrentNsa = nsa;
+        document.getElementById("sysReimpDesc").innerText = res.message;
+        document.getElementById("sysReimpMotivo").value = "";
+        new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
+      } else if (res && res.success) {
+        renderizarEImprimirOrdemCompleta(res.ordem);
+        loadControleOrders();
+      } else {
+        showSysAlert("Erro de Impressão", res ? res.error : "Falha na impressão.", "danger");
+      }
+    } catch(e) {
+      showSysAlert("Erro de Impressão", e.message, "danger");
+    }
+  }
+
+  function confirmarReimpressaoAcao() {
+    const motivo = document.getElementById("sysReimpMotivo").value;
+    if (!motivo || motivo.trim().length < 5) {
+      showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório (mínimo de 5 caracteres).", "warning");
+      return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById("sysReimpressaoModal")).hide();
+    acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
+  }
+
+  function renderizarEImprimirOrdemCompleta(ordem) {
+    const printDiv = document.getElementById("printableArea");
+    let html = "";
+
+    for (let via = 1; via <= 2; via++) {
+      html += `
+        <div class="page-break" style="padding: 10px; font-family: Arial, sans-serif; color: #000;">
+          
+          <table style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+            <tr>
+              <td style="vertical-align: top;">
+                <h2 style="margin: 0; font-size: 16px; font-weight: bold; text-transform: uppercase;">
+                  REGISTRO DE ABASTECIMENTO DE FABRICA
+                </h2>
+                <div style="font-size: 11px; margin-top: 3px;">
+                  <strong>Data:</strong> ${ordem.data} &nbsp;|&nbsp; <strong>Sistema:</strong> ${ordem.sistema}
+                </div>
+              </td>
+              <td style="text-align: right; vertical-align: top;">
+                <h2 style="margin: 0; font-size: 16px; font-weight: bold;">
+                  Nr. ${ordem.nsa}
+                </h2>
+                <div style="font-size: 11px; margin-top: 3px;">
+                  <strong>Documento:</strong> ${ordem.documento} &nbsp;|&nbsp; <strong>RAF - V1.0</strong>
+                  <span style="display: block; font-weight: bold; font-size: 11px; color: #333; margin-top: 2px;">VIA ${via} DE 2</span>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="background-color: #222 !important; color: #fff !important; -webkit-print-color-adjust: exact; padding: 4px 8px; font-size: 12px; font-weight: bold; margin-bottom: 6px;">
+            Estabelecimento:&nbsp;&nbsp;&nbsp;&nbsp;${ordem.estabelecimento}
+          </div>
+
+          <table class="raf-table">
+            <thead>
+              <tr>
+                <th style="width: 32%; text-align: left;">Produto</th>
+                <th style="width: 10%;">Localizacao</th>
+                <th style="width: 13%;">Lote</th>
+                <th style="width: 10%;">Validade</th>
+                <th style="width: 7%;">Origem</th>
+                <th style="width: 7%;">Destino</th>
+                <th style="width: 11%;">Quantidade</th>
+                <th style="width: 10%;">Pedido WMS</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ordem.itens.map(it => `
+                <tr>
+                  <td><strong>${it.codigo}</strong> &nbsp; ${it.descricao}</td>
+                  <td style="text-align: center;">${it.localizacao || ''}</td>
+                  <td style="text-align: center;"><strong>${it.lote}</strong></td>
+                  <td style="text-align: center;">${it.validade}</td>
+                  <td style="text-align: center;">${it.origem}</td>
+                  <td style="text-align: center;">${it.destino}</td>
+                  <td style="text-align: right; font-weight: bold;">${it.quantidade}</td>
+                  <td style="text-align: center;">${it.pedidoWms}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: bold; background-color: #f2f2f2; -webkit-print-color-adjust: exact;">
+                <td colspan="6" style="text-align: right; font-size: 12px; padding: 6px;">Total Geral:</td>
+                <td style="text-align: right; font-size: 12px; padding: 6px;">${ordem.totalGeral}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top: 14px; font-size: 11px;">
+            <em>Observação:</em>
+            <div style="border: 1px solid #000; height: 50px; width: 100%; margin-top: 2px;"></div>
+          </div>
+
+          <table style="width: 100%; margin-top: 40px; font-size: 11px; text-align: center;">
+            <tr>
+              <td style="width: 45%;">
+                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
+                  Responsável do Envio
+                </div>
+              </td>
+              <td style="width: 10%;"></td>
+              <td style="width: 45%;">
+                <div style="border-top: 1px solid #000; width: 80%; margin: 0 auto; padding-top: 4px;">
+                  Responsável do Recebimento
+                </div>
+              </td>
+            </tr>
+          </table>
+
+        </div>
+      `;
+    }
+
+    printDiv.innerHTML = html;
+    printDiv.classList.remove("d-none");
+    window.print();
+    printDiv.classList.add("d-none");
+  }
+
+  async function loadAuditPage(page) {
+    currentAuditPage = page;
+    const filters = {
+      page: page,
+      pageSize: 15,
+      dataInicio: document.getElementById("auditDataInicio").value,
+      dataFim: document.getElementById("auditDataFim").value,
+      nsa: document.getElementById("auditNsaBusca").value
+    };
+
+    try {
+      const res = await apiCall("getAuditHistory", { filters: filters });
+      const tbody = document.getElementById("tableHistoryBody");
+      tbody.innerHTML = "";
+      
+      if (!res.items || res.items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhum registro de auditoria encontrado para o período.</td></tr>`;
+        document.getElementById("auditTotalInfo").innerText = "0 registros encontrados";
+        document.getElementById("auditPaginationUl").innerHTML = "";
+        return;
+      }
+
+      res.items.forEach(h => {
+        tbody.innerHTML += `
+          <tr>
+            <td><small>${h.dataHora}</small></td>
+            <td><strong class="text-primary">${h.nsa}</strong></td>
+            <td><span class="badge bg-secondary">${h.acao}</span></td>
+            <td>${h.statusAnterior} &rarr; <strong>${h.statusNovo}</strong></td>
+            <td><small>${h.usuario}</small></td>
+            <td><span class="badge bg-dark">${h.area}</span></td>
+            <td><small>${h.observacao}</small></td>
+          </tr>
+        `;
+      });
+
+      const inicioFmt = ((res.page - 1) * res.pageSize) + 1;
+      const fimFmt = Math.min(res.total, res.page * res.pageSize);
+      document.getElementById("auditTotalInfo").innerText = `Exibindo ${inicioFmt}–${fimFmt} de ${res.total} registros (Página ${res.page} de ${res.totalPages})`;
+
+      renderPaginationButtons(res.page, res.totalPages);
+    } catch(e) {}
+  }
+
+  function renderPaginationButtons(currentPage, totalPages) {
+    const ul = document.getElementById("auditPaginationUl");
+    ul.innerHTML = "";
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage - 1})">&laquo;</a>
+      </li>
+    `;
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      ul.innerHTML += `
+        <li class="page-item ${p === currentPage ? 'active' : ''}">
+          <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${p})">${p}</a>
+        </li>
+      `;
+    }
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage + 1})">&raquo;</a>
+      </li>
+    `;
+  }
+</script>
+</body>
+</html>
