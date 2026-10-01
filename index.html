@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Torre de Controle - Abastecimento de Fábrica</title>
-  <!-- FAVICON PERSONALIZADO (ESCUDO AZUL) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/></svg>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -397,30 +396,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // URL OFICIAL DA SUA APLICAÇÃO GOOGLE APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // COMUNICAÇÃO HÍBRIDA (no-cors para mutações / text/plain para leituras)
+  // ENVIADOR UNIVERSAL SEGURO: URLSearchParams para gravação e leitura sem preflight
   async function apiCall(action, payload = {}) {
     const bodyData = { action: action, ...payload };
+    const formData = new URLSearchParams();
+    formData.append("payload", JSON.stringify(bodyData));
 
-    // Se for gravação/modificação, usamos no-cors para contornar qualquer limitação de redirecionamento HTTP 302
-    if (action === "commitImportacao" || action === "registrarEntregaOperador" || action === "registrarFinalizacaoRecebimento") {
-      await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(bodyData)
-      });
-      return { success: true };
-    }
-
-    // Requisições de leitura de dados normais
     try {
       const response = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(bodyData)
+        body: formData
       });
       return await response.json();
     } catch(err) {
@@ -778,7 +765,6 @@
     }
   }
 
-  // GRAVAÇÃO BLINDADA COM NO-CORS
   async function confirmImport() {
     if (!cachedPreviewData) return;
 
@@ -812,7 +798,7 @@
         }))
       };
 
-      await apiCall("commitImportacao", {
+      const res = await apiCall("commitImportacao", {
         importData: payloadLimpo,
         forceDuplicate: false,
         duplicateReason: ""
@@ -821,19 +807,19 @@
       btn.disabled = false;
       btn.innerHTML = `Confirmar e Gravar Pedidos`;
 
-      showSysAlert(
-        "Importação Gravada com Sucesso!",
-        `Foram enviados <strong>${cachedPreviewData.totalItens} materiais</strong> para a base de dados na folha de cálculo.<br>A redirecionar para a lista de ordens...`,
-        "success"
-      );
-
-      document.getElementById("importPreviewArea").classList.add("d-none");
-      document.getElementById("pdfFileInput").value = "";
-      cachedPreviewData = null;
-
-      setTimeout(() => {
-        showSection("controle");
-      }, 1500);
+      if (res && res.success) {
+        showSysAlert(
+          "Importação Gravada com Sucesso!",
+          `Foram gravados <strong>${res.total} registros</strong> na aba <strong>PEDIDOS_ABASTECIMENTO</strong> da sua planilha.<br>A redirecionar...`,
+          "success"
+        );
+        document.getElementById("importPreviewArea").classList.add("d-none");
+        document.getElementById("pdfFileInput").value = "";
+        cachedPreviewData = null;
+        setTimeout(() => showSection("controle"), 1500);
+      } else {
+        showSysAlert("Falha ao Gravar", res ? res.error : "Não foi possível confirmar a gravação.", "danger");
+      }
 
     } catch (e) {
       btn.disabled = false;
@@ -949,9 +935,13 @@
     bootstrap.Modal.getInstance(document.getElementById("sysEntregaModal")).hide();
 
     try {
-      await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
-      loadControleOrders();
-      showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
+      const res = await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
+      if (res && res.success) {
+        loadControleOrders();
+        showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao registrar entrega.", "danger");
+      }
     } catch(e) {
       showSysAlert("Erro", e.message, "danger");
     }
@@ -977,10 +967,14 @@
     bootstrap.Modal.getInstance(document.getElementById("sysFinalizarModal")).hide();
 
     try {
-      await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
-      loadControleOrders();
-      loadDashboard();
-      showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
+      const res = await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
+      if (res && res.success) {
+        loadControleOrders();
+        loadDashboard();
+        showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao finalizar ordem.", "danger");
+      }
     } catch(e) {
       showSysAlert("Erro", e.message, "danger");
     }
