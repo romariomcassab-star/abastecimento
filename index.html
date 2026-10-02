@@ -151,6 +151,30 @@
     .icon-container.warning { background-color: #fef3c7; color: #d97706; }
     .icon-container.info { background-color: #e0e7ff; color: #4f46e5; }
 
+    /* BOTÕES DE CÓPIA RÁPIDA TOTVS */
+    .btn-copy-chip {
+      font-size: 0.78rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      background-color: #f8fafc;
+      color: #334155;
+      font-family: monospace;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .btn-copy-chip:hover {
+      background-color: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .btn-copy-chip.copied {
+      background-color: #10b981 !important;
+      border-color: #059669 !important;
+      color: #ffffff !important;
+    }
+
     /* TELA DE LOGIN */
     #authOverlay {
       position: fixed;
@@ -362,7 +386,7 @@
                 <th>Qtd Itens</th>
                 <th>Peso Total</th>
                 <th>Status Atual</th>
-                <th style="min-width: 250px;">Ações da Ordem</th>
+                <th style="min-width: 320px;">Ações da Ordem</th>
               </tr>
             </thead>
             <tbody id="tableControleBody"></tbody>
@@ -430,6 +454,42 @@
   <span>CRIADO E DESENVOLVIDO POR: <strong>ROMÁRIO SILVA</strong></span>
 </footer>
 
+<!-- MODAL DE VISUALIZAÇÃO DE ITENS E CÓPIA TOTVS / QR CODE -->
+<div class="modal fade sys-modal" id="sysDetalhesModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom bg-light">
+        <div>
+          <h5 class="modal-title fw-bold text-dark m-0" id="detalhesModalTitle">Materiais do Pedido WMS</h5>
+          <small class="text-muted">Clique nos botões abaixo para copiar instantaneamente Código, Lote e Validade para o TOTVS / QR Code.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle border">
+            <thead class="table-dark">
+              <tr>
+                <th style="width: 25%;">Produto / Código</th>
+                <th style="width: 22%;">Lote (Clique p/ Copiar)</th>
+                <th style="width: 16%;">Validade</th>
+                <th style="width: 14%;">Origem &rarr; Destino</th>
+                <th style="width: 11%;">Quantidade</th>
+                <th style="width: 12%; text-align: center;">Linha TOTVS</th>
+              </tr>
+            </thead>
+            <tbody id="detalhesModalBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light justify-content-between">
+        <small class="text-secondary"><i class="bi bi-info-circle me-1"></i> Dica: O botão <strong>"Copiar Linha"</strong> copia todos os dados tabulados prontos para colar no ERP.</small>
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAIS DO SISTEMA -->
 <div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
@@ -441,36 +501,6 @@
       </div>
       <div class="modal-footer justify-content-center border-0 pt-0">
         <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade sys-modal" id="sysDetalhesModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-bottom">
-        <h5 class="modal-title fw-bold" id="detalhesModalTitle">Itens do Pedido WMS</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        <div class="table-responsive">
-          <table class="table table-sm table-striped align-middle">
-            <thead class="table-dark">
-              <tr>
-                <th>Produto</th>
-                <th>Lote</th>
-                <th>Validade</th>
-                <th>Origem &rarr; Destino</th>
-                <th>Quantidade (KG)</th>
-              </tr>
-            </thead>
-            <tbody id="detalhesModalBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
@@ -1100,14 +1130,19 @@
             </td>
             <td><strong>${g.dataPlanejamento}</strong></td>
             <td>
-              <a href="javascript:void(0)" onclick="abrirDetalhesItens('${g.nsa}')" class="badge bg-light text-dark border text-decoration-none">
+              <span class="badge bg-light text-dark border">
                 <i class="bi bi-box-seam me-1"></i> ${g.itens.length} materiais
-              </a>
+              </span>
             </td>
             <td><strong>${totalKgFmt} KG</strong></td>
             <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
             <td>
-              <div class="d-flex gap-1">
+              <div class="d-flex flex-wrap gap-1">
+                <!-- NOVO BOTÃO DEDICADO PARA A ASSISTENTE VISUALIZAR E COPIAR -->
+                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="abrirDetalhesItens('${g.nsa}')" title="Ver materiais, copiar lotes e códigos para o TOTVS">
+                  <i class="bi bi-eye"></i> Ver Itens / Copiar TOTVS
+                </button>
+
                 <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Baixar Ordem Oficial em PDF (2 Vias)">
                   <i class="bi bi-file-earmark-pdf"></i> Imprimir Ordem (2 Vias)
                 </button>
@@ -1131,27 +1166,99 @@
     } catch(e) {}
   }
 
+  // =========================================================================
+  // MODAL DE MATERIAIS COM BOTÕES DE CÓPIA RÁPIDA TOTVS
+  // =========================================================================
   function abrirDetalhesItens(nsa) {
     const g = cacheGruposNsa[nsa];
     if (!g) return;
 
-    document.getElementById("detalhesModalTitle").innerText = `Itens do Pedido WMS: ${nsa}`;
+    document.getElementById("detalhesModalTitle").innerText = `Materiais do Pedido WMS: ${nsa} (${g.documento})`;
     const tbody = document.getElementById("detalhesModalBody");
     tbody.innerHTML = "";
 
-    g.itens.forEach(it => {
+    g.itens.forEach((it, idx) => {
+      // Texto tabulado pronto para o TOTVS
+      const linhaTotvs = `${it.codigo}\t${it.lote}\t${it.validade}\t${it.quantidade}`;
+
       tbody.innerHTML += `
         <tr>
-          <td><strong>${it.codigo}</strong> - <small>${it.descricao}</small></td>
-          <td><strong>${it.lote}</strong></td>
-          <td>${it.validade}</td>
-          <td>${it.origem} &rarr; ${it.destino}</td>
-          <td><strong>${it.quantidade} KG</strong></td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <strong class="text-dark">${it.codigo}</strong>
+              <button class="btn-copy-chip" onclick="copiarTexto('${it.codigo}', this)" title="Copiar Código do Produto">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <small class="text-muted d-block" style="font-size: 0.8rem;">${it.descricao}</small>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <span class="badge bg-light text-dark border px-2 py-1 fs-6">${it.lote || '-'}</span>
+              ${it.lote ? `
+                <button class="btn-copy-chip" onclick="copiarTexto('${it.lote}', this)" title="Copiar Lote">
+                  <i class="bi bi-clipboard"></i> Copiar
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <span>${it.validade || '-'}</span>
+              ${it.validade ? `
+                <button class="btn-copy-chip" onclick="copiarTexto('${it.validade}', this)" title="Copiar Validade">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td><small class="fw-bold">${it.origem} &rarr; ${it.destino}</small></td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <strong class="text-primary">${it.quantidade} KG</strong>
+              <button class="btn-copy-chip" onclick="copiarTexto('${it.quantidade}', this)" title="Copiar Quantidade">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn btn-sm btn-outline-dark py-1 px-2" style="font-size: 0.75rem;" onclick="copiarLinhaTotvs('${it.codigo}', '${it.lote}', '${it.validade}', '${it.quantidade}', this)" title="Copiar Linha completa tabulada para colar no TOTVS">
+              <i class="bi bi-copy"></i> Copiar Linha
+            </button>
+          </td>
         </tr>
       `;
     });
 
     new bootstrap.Modal(document.getElementById("sysDetalhesModal")).show();
+  }
+
+  // FUNÇÃO DE CÓPIA INDIVIDUAL
+  function copiarTexto(texto, btnElement) {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto).then(() => {
+      const originalHtml = btnElement.innerHTML;
+      btnElement.classList.add("copied");
+      btnElement.innerHTML = `<i class="bi bi-check2"></i>`;
+      setTimeout(() => {
+        btnElement.classList.remove("copied");
+        btnElement.innerHTML = originalHtml;
+      }, 1500);
+    });
+  }
+
+  // FUNÇÃO DE CÓPIA DE LINHA TABULADA PARA O TOTVS
+  function copiarLinhaTotvs(codigo, lote, validade, quantidade, btnElement) {
+    const textoTabulado = `${codigo}\t${lote}\t${validade}\t${quantidade}`;
+    navigator.clipboard.writeText(textoTabulado).then(() => {
+      const originalHtml = btnElement.innerHTML;
+      btnElement.className = "btn btn-sm btn-success py-1 px-2";
+      btnElement.innerHTML = `<i class="bi bi-check2"></i> Copiado!`;
+      setTimeout(() => {
+        btnElement.className = "btn btn-sm btn-outline-dark py-1 px-2";
+        btnElement.innerHTML = originalHtml;
+      }, 1800);
+    });
   }
 
   function abrirModalEntregaOperador(nsa) {
@@ -1226,7 +1333,6 @@
         document.getElementById("sysReimpMotivo").value = "";
         new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
       } else if (res && res.success) {
-        // Envia o nome do usuário logado diretamente para a renderização do PDF
         gerarEBaixarPdfOficial(res.ordem);
         loadControleOrders();
       } else {
@@ -1248,18 +1354,16 @@
   }
 
   // =========================================================================
-  // GERADOR NATIVO DE PDF COM O NOME EXATO DO USUÁRIO LOGADO
+  // GERADOR NATIVO DE PDF COM NOME DO USUÁRIO LOGADO E SOMA EXATA
   // =========================================================================
   function gerarEBaixarPdfOficial(ordem) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-    // Nome dinâmico de quem está na sessão ativa no momento da impressão
     const nomeUsuarioImpressao = (currentUserSession && currentUserSession.nome) 
       ? currentUserSession.nome.toUpperCase().trim() 
       : (ordem.sistema || "USUÁRIO");
 
-    // Cálculo da soma real dos itens
     let somaRealOrdem = 0;
     const tableBody = ordem.itens.map(it => {
       let numStr = String(it.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
@@ -1288,7 +1392,6 @@
     for (let via = 1; via <= 2; via++) {
       if (via === 2) doc.addPage("a4", "landscape");
 
-      // 1. Cabeçalho Principal
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("REGISTRO DE ABASTECIMENTO DE FABRICA", 12, 14);
@@ -1298,18 +1401,15 @@
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      // Aqui sai o nome de quem gerou a impressão dinamicamente:
       doc.text(`Data: ${ordem.data}  |  Sistema: ${nomeUsuarioImpressao}`, 12, 19);
       doc.text(`Documento: ${ordem.documento}  |  RAF - V1.0`, 285, 19, { align: "right" });
 
       doc.setFont("helvetica", "bold");
       doc.text(`VIA ${via} DE 2`, 285, 23.5, { align: "right" });
 
-      // Linha separadora superior
       doc.setLineWidth(0.5);
       doc.line(12, 25, 285, 25);
 
-      // Faixa com Estabelecimento
       doc.setFillColor(34, 34, 34);
       doc.rect(12, 27, 273, 6, "F");
       doc.setFont("helvetica", "bold");
@@ -1319,7 +1419,6 @@
 
       doc.setTextColor(0, 0, 0);
 
-      // 2. Tabela de Materiais
       doc.autoTable({
         startY: 35,
         margin: { left: 12, right: 12 },
@@ -1354,13 +1453,11 @@
       let finalY = doc.lastAutoTable.finalY + 4;
       if (finalY > 170) finalY = 170;
 
-      // 3. Campo de Observação
       doc.setFont("helvetica", "italic");
       doc.setFontSize(8.5);
       doc.text("Observação:", 12, finalY);
       doc.rect(12, finalY + 1.5, 273, 10);
 
-      // 4. Assinaturas
       const signY = finalY + 22;
       doc.line(30, signY, 115, signY);
       doc.line(180, signY, 265, signY);
