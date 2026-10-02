@@ -567,6 +567,7 @@
     const bodyData = { 
       action: action, 
       userEmail: currentUserSession ? currentUserSession.email : "",
+      userName: currentUserSession ? currentUserSession.nome : "",
       ...payload 
     };
     const formData = new URLSearchParams();
@@ -1225,6 +1226,7 @@
         document.getElementById("sysReimpMotivo").value = "";
         new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
       } else if (res && res.success) {
+        // Envia o nome do usuário logado diretamente para a renderização do PDF
         gerarEBaixarPdfOficial(res.ordem);
         loadControleOrders();
       } else {
@@ -1246,14 +1248,18 @@
   }
 
   // =========================================================================
-  // GERADOR NATIVO DE PDF VETORIZADO (JSPDF) - 100% LIMPO SEM CABEÇALHOS DO GOOGLE
+  // GERADOR NATIVO DE PDF COM O NOME EXATO DO USUÁRIO LOGADO
   // =========================================================================
   function gerarEBaixarPdfOficial(ordem) {
     const { jsPDF } = window.jspdf;
-    // A4 Landscape: 297mm x 210mm
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-    // Cálculo exato da soma matemática dos itens
+    // Nome dinâmico de quem está na sessão ativa no momento da impressão
+    const nomeUsuarioImpressao = (currentUserSession && currentUserSession.nome) 
+      ? currentUserSession.nome.toUpperCase().trim() 
+      : (ordem.sistema || "USUÁRIO");
+
+    // Cálculo da soma real dos itens
     let somaRealOrdem = 0;
     const tableBody = ordem.itens.map(it => {
       let numStr = String(it.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
@@ -1273,7 +1279,6 @@
 
     const totalFmt = somaRealOrdem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    // Adiciona a linha final com o Total Geral
     tableBody.push([
       { content: "Total Geral:", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
       { content: totalFmt, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
@@ -1293,7 +1298,8 @@
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`Data: ${ordem.data}  |  Sistema: ${ordem.sistema}`, 12, 19);
+      // Aqui sai o nome de quem gerou a impressão dinamicamente:
+      doc.text(`Data: ${ordem.data}  |  Sistema: ${nomeUsuarioImpressao}`, 12, 19);
       doc.text(`Documento: ${ordem.documento}  |  RAF - V1.0`, 285, 19, { align: "right" });
 
       doc.setFont("helvetica", "bold");
@@ -1303,7 +1309,7 @@
       doc.setLineWidth(0.5);
       doc.line(12, 25, 285, 25);
 
-      // Faixa preta com Estabelecimento
+      // Faixa com Estabelecimento
       doc.setFillColor(34, 34, 34);
       doc.rect(12, 27, 273, 6, "F");
       doc.setFont("helvetica", "bold");
@@ -1311,7 +1317,6 @@
       doc.setFontSize(9);
       doc.text(`Estabelecimento:    ${ordem.estabelecimento}`, 15, 31.2);
 
-      // Reseta cor de texto
       doc.setTextColor(0, 0, 0);
 
       // 2. Tabela de Materiais
@@ -1346,7 +1351,6 @@
         }
       });
 
-      // Posição final após a tabela
       let finalY = doc.lastAutoTable.finalY + 4;
       if (finalY > 170) finalY = 170;
 
@@ -1367,13 +1371,12 @@
       doc.text("Responsável do Recebimento", 222.5, signY + 4, { align: "center" });
     }
 
-    // Baixa o arquivo PDF vetorizado limpo e abre o documento
     const nomeArquivo = `Ordem_${ordem.nsa}.pdf`;
     doc.save(nomeArquivo);
 
     showSysAlert(
       "Ordem Gerada com Sucesso!",
-      `O arquivo oficial <strong>${nomeArquivo}</strong> com as <strong>2 Vias</strong> foi baixado na sua máquina.<br>Você pode abri-lo e imprimir limpo, sem links ou datas nos cantos.`,
+      `O arquivo oficial <strong>${nomeArquivo}</strong> foi gerado por <strong>${nomeUsuarioImpressao}</strong> e baixado na máquina.<br>2 vias prontas para impressão limpa.`,
       "success"
     );
   }
