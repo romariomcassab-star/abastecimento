@@ -102,9 +102,37 @@
     }
     .card-kpi {
       border: none;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: all 0.2s ease;
     }
+    .card-kpi:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    /* CRONÔMETRO E SLA */
+    .sla-footer-card {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+    }
+    .badge-sla {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sla-ok { background-color: #dcfce7; color: #15803d; }
+    .sla-warn { background-color: #fef3c7; color: #b45309; }
+    .sla-danger { background-color: #fee2e2; color: #b91c1c; }
+
     .status-badge {
       font-size: 0.78rem;
       padding: 5px 12px;
@@ -187,9 +215,9 @@
   <div class="d-flex align-items-center gap-3">
     <div class="text-end small d-none d-md-block">
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
-      <strong id="topUserDisplay" class="text-white">ROMÁRIO SILVA (PLANEJAMENTO)</strong>
+      <strong id="topUserDisplay" class="text-white">ROMÁRIO SILVA (ADMIN)</strong>
     </div>
-    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Trocar nome do operador">
+    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Trocar ou autenticar usuário">
       <i class="bi bi-person-circle"></i> Trocar Usuário
     </button>
   </div>
@@ -202,7 +230,7 @@
     <div class="col-md-2 p-0 sidebar">
       <div class="p-3 text-center border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25 mb-2">
         <small class="d-block text-secondary">Área de Atuação:</small>
-        <strong id="sessionUserArea" class="text-light small">PLANEJAMENTO</strong>
+        <strong id="sessionUserArea" class="text-light small">SUPERVISOR</strong>
       </div>
       <ul class="nav flex-column">
         <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
@@ -215,35 +243,65 @@
     <!-- ÁREA DE CONTEÚDO -->
     <div class="col-md-10 main-content">
       
-      <!-- DASHBOARD -->
+      <!-- DASHBOARD COM CRONÔMETRO DE PROCESSOS E SLA -->
       <div id="sec-dashboard" class="content-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold m-0">Visão Geral da Torre de Controle</h4>
-          <button class="btn btn-sm btn-outline-secondary" onclick="loadDashboard()"><i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="loadDashboard()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores
+          </button>
         </div>
+
         <div class="row g-3 mb-4">
+          <!-- CARD TOTAL -->
           <div class="col-md-3">
-            <div class="card card-kpi p-3 bg-white">
+            <div class="card card-kpi p-3 bg-white h-100">
               <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
+              
+              <div class="sla-footer-card">
+                <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
+                <span class="badge bg-light text-dark border">24 Horas</span>
+              </div>
             </div>
           </div>
+
+          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
-            <div class="card card-kpi p-3 bg-white border-start border-warning border-4">
+            <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
+              
+              <div class="sla-footer-card">
+                <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em fila:</span>
+                <span id="cron-pendente" class="badge-sla sla-ok">00:00:00</span>
+              </div>
             </div>
           </div>
+
+          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
-            <div class="card card-kpi p-3 bg-white border-start border-info border-4">
+            <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
+              
+              <div class="sla-footer-card">
+                <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Lead Time Operação:</span>
+                <span id="cron-impressos" class="badge-sla sla-ok">00:00:00</span>
+              </div>
             </div>
           </div>
+
+          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
-            <div class="card card-kpi p-3 bg-white border-start border-success border-4">
+            <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
+              
+              <div class="sla-footer-card">
+                <span class="text-muted"><i class="bi bi-check2-circle"></i> Tempo Médio Total:</span>
+                <span id="cron-finalizados" class="badge-sla sla-ok">00:00:00</span>
+              </div>
             </div>
           </div>
         </div>
@@ -339,13 +397,7 @@
                 <th style="min-width: 320px;">Ações da Ordem</th>
               </tr>
             </thead>
-            <tbody id="tableControleBody">
-              <tr>
-                <td colspan="6" class="text-center text-muted p-4">
-                  <span class="spinner-border spinner-border-sm text-primary me-2"></span> Carregando ordens...
-                </td>
-              </tr>
-            </tbody>
+            <tbody id="tableControleBody"></tbody>
           </table>
         </div>
       </div>
@@ -538,12 +590,11 @@
   // URL OFICIAL DO SEU APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // Usuário padrão inicial (Evita qualquer tela preta ou bloqueio)
   let currentUserSession = {
     nome: "ROMÁRIO SILVA",
     email: "romario.mcassab@gmail.com",
-    area: "PLANEJAMENTO",
-    perfil: "PLANEJAMENTO"
+    area: "SUPERVISOR",
+    perfil: "ADMIN"
   };
 
   const savedSession = localStorage.getItem("torre_user_session");
@@ -551,7 +602,6 @@
     try { currentUserSession = JSON.parse(savedSession); } catch(e) {}
   }
 
-  // COMUNICAÇÃO TOTALMENTE BLINDADA COM ABORT CONTROLLER (NUNCA FICA PRESA)
   async function apiCall(action, payload = {}) {
     const bodyData = { 
       action: action, 
@@ -562,10 +612,10 @@
     const formData = new URLSearchParams();
     formData.append("payload", JSON.stringify(bodyData));
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9 segundos max
-
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
         body: formData,
@@ -574,15 +624,13 @@
       clearTimeout(timeoutId);
       return await response.json();
     } catch(err) {
-      clearTimeout(timeoutId);
-      console.warn("Aviso de API (" + action + "):", err.message);
       return { success: false, error: err.message };
     }
   }
 
   function alterarUsuario() {
-    const novoNome = prompt("Informe o nome de quem está utilizando a Torre agora:", currentUserSession.nome);
-    if (novoNome && novoNome.trim().length > 1) {
+    const novoNome = prompt("Informe o nome do colaborador:", currentUserSession.nome);
+    if (novoNome && novoNome.trim().length > 2) {
       currentUserSession.nome = novoNome.trim().toUpperCase();
       localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
       atualizarExibicaoUsuario();
@@ -598,6 +646,56 @@
   let reimpCurrentNsa = null;
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
+
+  // ESTADO DO CRONÔMETRO DE PROCESSOS
+  let timerSlaData = {
+    msPendente: 0,
+    msImpressos: 0,
+    msFinalizados: 0
+  };
+
+  function formatarDuracaoMs(ms) {
+    if (!ms || ms <= 0) return "00:00:00";
+    const totalSegundos = Math.floor(ms / 1000);
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+  }
+
+  function atualizarBadgesSla() {
+    const limite24h = 24 * 3600 * 1000;
+    const alerta18h = 18 * 3600 * 1000;
+
+    function renderSlaBadge(elemId, ms) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      el.innerText = formatarDuracaoMs(ms);
+
+      el.classList.remove("sla-ok", "sla-warn", "sla-danger");
+      if (ms > limite24h) {
+        el.classList.add("sla-danger");
+        el.title = "SLA Estourado! Mais de 24 horas.";
+      } else if (ms > alerta18h) {
+        el.classList.add("sla-warn");
+        el.title = "Atenção: Próximo do limite de 24h.";
+      } else {
+        el.classList.add("sla-ok");
+        el.title = "Dentro do prazo regulamentar (< 24h).";
+      }
+    }
+
+    renderSlaBadge("cron-pendente", timerSlaData.msPendente);
+    renderSlaBadge("cron-impressos", timerSlaData.msImpressos);
+    renderSlaBadge("cron-finalizados", timerSlaData.msFinalizados);
+  }
+
+  // Tique-taque ao vivo do cronômetro a cada segundo
+  setInterval(() => {
+    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 1000;
+    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 1000;
+    atualizarBadgesSla();
+  }, 1000);
 
   const SVGS = {
     success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
@@ -615,7 +713,6 @@
     new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
   }
 
-  // INICIALIZAÇÃO IMEDIATA: A TELA CARREGA INSTANTANEAMENTE
   document.addEventListener("DOMContentLoaded", function() {
     atualizarExibicaoUsuario();
     loadDashboard();
@@ -636,16 +733,23 @@
   async function loadDashboard() {
     try {
       const metrics = await apiCall("getDashboardMetrics");
-      if (metrics && typeof metrics.total !== "undefined") {
+      if (metrics) {
         document.getElementById("kpi-total").innerText = metrics.total || 0;
         document.getElementById("kpi-pendente").innerText = metrics.pendenteImpressao || 0;
         document.getElementById("kpi-impressos").innerText = metrics.impressos || 0;
         document.getElementById("kpi-finalizados").innerText = metrics.finalizados || 0;
+
+        if (metrics.sla) {
+          timerSlaData.msPendente = metrics.sla.maxPendenteMs || metrics.sla.tempoPendenteMs || 0;
+          timerSlaData.msImpressos = metrics.sla.maxImpressosMs || metrics.sla.tempoImpressosMs || 0;
+          timerSlaData.msFinalizados = metrics.sla.tempoFinalizadosMs || 0;
+          atualizarBadgesSla();
+        }
       }
     } catch(e) {}
   }
 
-  // LEITOR DE PDF 100% LOCAL NO NAVEGADOR
+  // PARSER LOCAL NO NAVEGADOR
   function parseAbastecimentoLocal(rawText, fileName) {
     const result = {
       arquivo: fileName,
@@ -1017,11 +1121,9 @@
       status: document.getElementById("filtroStatusCtrl").value
     };
 
-    const tbody = document.getElementById("tableControleBody");
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-4"><span class="spinner-border spinner-border-sm text-primary me-2"></span> Carregando ordens da planilha...</td></tr>`;
-
     try {
       const grupos = await apiCall("getOrdersGroupedByNsa", { filters: filters });
+      const tbody = document.getElementById("tableControleBody");
       tbody.innerHTML = "";
       cacheGruposNsa = {};
       
@@ -1081,9 +1183,7 @@
           </tr>
         `;
       });
-    } catch(e) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger p-4"><i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>Falha ao carregar ordens: ${e.message}</td></tr>`;
-    }
+    } catch(e) {}
   }
 
   // MODAL DE MATERIAIS COM CÓPIA RÁPIDA TOTVS
@@ -1184,8 +1284,8 @@
     const nsa = document.getElementById("entregaNsaInput").value;
     const nome = document.getElementById("entregaOperadorNome").value;
 
-    if (!nome || nome.trim().length < 2) {
-      showSysAlert("Validação Obrigatória", "Informe o nome do operador.", "warning");
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do operador separador que retirou as vias.", "warning");
       return;
     }
 
@@ -1216,8 +1316,8 @@
     const nome = document.getElementById("finalizarRecebedorNome").value;
     const obs = document.getElementById("finalizarObsInput").value;
 
-    if (!nome || nome.trim().length < 2) {
-      showSysAlert("Validação Obrigatória", "Informe o nome do responsável pelo recebimento.", "warning");
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do responsável pelo recebimento na fábrica.", "warning");
       return;
     }
 
@@ -1258,8 +1358,8 @@
 
   function confirmarReimpressaoAcao() {
     const motivo = document.getElementById("sysReimpMotivo").value;
-    if (!motivo || motivo.trim().length < 3) {
-      showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório.", "warning");
+    if (!motivo || motivo.trim().length < 5) {
+      showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório (mínimo de 5 caracteres).", "warning");
       return;
     }
     bootstrap.Modal.getInstance(document.getElementById("sysReimpressaoModal")).hide();
