@@ -357,7 +357,7 @@
         </div>
       </div>
 
-      <!-- CONTROLE DE PEDIDOS WMS (AGRUPADO POR NSA) -->
+      <!-- CONTROLE DE PEDIDOS WMS COM TEMPO INDIVIDUAL DE PROCESSO -->
       <div id="sec-controle" class="content-section d-none">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="fw-bold m-0">Ordens de Abastecimento (Por Pedido WMS)</h4>
@@ -394,6 +394,7 @@
                 <th>Qtd Itens</th>
                 <th>Peso Total</th>
                 <th>Status Atual</th>
+                <th style="min-width: 140px;">Tempo de Processo (SLA)</th>
                 <th style="min-width: 320px;">Ações da Ordem</th>
               </tr>
             </thead>
@@ -653,7 +654,7 @@
     msImpressos: 0
   };
 
-  // FORMATAÇÃO INTELIGENTE EM DIAS, HORAS E MINUTOS
+  // FORMATAÇÃO EM DIAS, HORAS E MINUTOS
   function formatarDuracaoMs(ms) {
     if (!ms || ms <= 0) return "0d 00h 00m";
     const totalSegundos = Math.floor(ms / 1000);
@@ -690,7 +691,6 @@
     renderSlaBadge("cron-impressos", timerSlaData.msImpressos);
   }
 
-  // Tique-taque ao vivo do cronômetro a cada minuto
   setInterval(() => {
     if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 60000;
     if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 60000;
@@ -1132,9 +1132,13 @@
       cacheGruposNsa = {};
       
       if (!grupos || grupos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhuma ordem pendente de ação encontrada.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhuma ordem pendente de ação encontrada.</td></tr>`;
         return;
       }
+
+      const now = new Date().getTime();
+      const limite24h = 24 * 3600 * 1000;
+      const alerta18h = 18 * 3600 * 1000;
 
       grupos.forEach(g => {
         cacheGruposNsa[g.nsa] = g;
@@ -1146,6 +1150,23 @@
         });
 
         const totalKgFmt = somaRealKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // CÁLCULO DO TEMPO INDIVIDUAL DESTA ORDEM
+        const marcoInicial = g.dtImpMs || g.dtImportMs || now;
+        const marcoFinal = g.dtFimMs || now;
+        const duracaoMs = Math.max(0, marcoFinal - marcoInicial);
+        const tempoFmt = formatarDuracaoMs(duracaoMs);
+
+        // CLASSE VISUAL DE SLA
+        let badgeSlaClass = "sla-ok";
+        let slaTitle = "Dentro da meta (< 24h)";
+        if (duracaoMs > limite24h) {
+          badgeSlaClass = "sla-danger";
+          slaTitle = "SLA Estourado! Mais de 24 horas";
+        } else if (duracaoMs > alerta18h) {
+          badgeSlaClass = "sla-warn";
+          slaTitle = "Atenção: Próximo de 24h";
+        }
 
         tbody.innerHTML += `
           <tr>
@@ -1161,6 +1182,11 @@
             </td>
             <td><strong>${totalKgFmt} KG</strong></td>
             <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
+            <td>
+              <span class="badge-sla ${badgeSlaClass}" title="${slaTitle}">
+                <i class="bi bi-stopwatch me-1"></i> ${tempoFmt}
+              </span>
+            </td>
             <td>
               <div class="d-flex flex-wrap gap-1">
                 <button class="btn btn-sm btn-outline-primary fw-bold" onclick="abrirDetalhesItens('${g.nsa}')" title="Ver materiais, copiar lotes e códigos para o TOTVS">
