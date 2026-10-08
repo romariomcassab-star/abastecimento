@@ -243,7 +243,7 @@
     <!-- ÁREA DE CONTEÚDO -->
     <div class="col-md-10 main-content">
       
-      <!-- DASHBOARD COM CRONÔMETRO DE PROCESSOS E SLA -->
+      <!-- DASHBOARD COM SLA EM DIAS E HORAS -->
       <div id="sec-dashboard" class="content-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold m-0">Visão Geral da Torre de Controle</h4>
@@ -260,7 +260,7 @@
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
               
               <div class="sla-footer-card">
-                <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
+                <span class="text-muted"><i class="bi bi-bullseye"></i> Meta de Lead Time:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
               </div>
             </div>
@@ -273,8 +273,8 @@
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
               
               <div class="sla-footer-card">
-                <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em fila:</span>
-                <span id="cron-pendente" class="badge-sla sla-ok">00:00:00</span>
+                <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
+                <span id="cron-pendente" class="badge-sla sla-ok">0d 00h 00m</span>
               </div>
             </div>
           </div>
@@ -286,21 +286,21 @@
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
               
               <div class="sla-footer-card">
-                <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Lead Time Operação:</span>
-                <span id="cron-impressos" class="badge-sla sla-ok">00:00:00</span>
+                <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
+                <span id="cron-impressos" class="badge-sla sla-ok">0d 00h 00m</span>
               </div>
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS -->
+          <!-- CARD FINALIZADOS (SEM CRONÔMETRO, COM TAXA DE EFICIÊNCIA) -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
               
               <div class="sla-footer-card">
-                <span class="text-muted"><i class="bi bi-check2-circle"></i> Tempo Médio Total:</span>
-                <span id="cron-finalizados" class="badge-sla sla-ok">00:00:00</span>
+                <span class="text-muted"><i class="bi bi-check2-circle"></i> Eficiência SLA:</span>
+                <span id="kpi-taxa-finalizados" class="badge bg-success bg-opacity-10 text-success fw-bold">100% no Prazo</span>
               </div>
             </div>
           </div>
@@ -650,17 +650,18 @@
   // ESTADO DO CRONÔMETRO DE PROCESSOS
   let timerSlaData = {
     msPendente: 0,
-    msImpressos: 0,
-    msFinalizados: 0
+    msImpressos: 0
   };
 
+  // FORMATAÇÃO INTELIGENTE EM DIAS, HORAS E MINUTOS
   function formatarDuracaoMs(ms) {
-    if (!ms || ms <= 0) return "00:00:00";
+    if (!ms || ms <= 0) return "0d 00h 00m";
     const totalSegundos = Math.floor(ms / 1000);
-    const horas = Math.floor(totalSegundos / 3600);
+    const dias = Math.floor(totalSegundos / 86400);
+    const horas = Math.floor((totalSegundos % 86400) / 3600);
     const minutos = Math.floor((totalSegundos % 3600) / 60);
-    const segundos = totalSegundos % 60;
-    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+
+    return `${dias}d ${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}m`;
   }
 
   function atualizarBadgesSla() {
@@ -681,21 +682,20 @@
         el.title = "Atenção: Próximo do limite de 24h.";
       } else {
         el.classList.add("sla-ok");
-        el.title = "Dentro do prazo regulamentar (< 24h).";
+        el.title = "Dentro do prazo (< 24h).";
       }
     }
 
     renderSlaBadge("cron-pendente", timerSlaData.msPendente);
     renderSlaBadge("cron-impressos", timerSlaData.msImpressos);
-    renderSlaBadge("cron-finalizados", timerSlaData.msFinalizados);
   }
 
-  // Tique-taque ao vivo do cronômetro a cada segundo
+  // Tique-taque ao vivo do cronômetro a cada minuto
   setInterval(() => {
-    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 1000;
-    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 1000;
+    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 60000;
+    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 60000;
     atualizarBadgesSla();
-  }, 1000);
+  }, 60000);
 
   const SVGS = {
     success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
@@ -740,10 +740,14 @@
         document.getElementById("kpi-finalizados").innerText = metrics.finalizados || 0;
 
         if (metrics.sla) {
-          timerSlaData.msPendente = metrics.sla.maxPendenteMs || metrics.sla.tempoPendenteMs || 0;
-          timerSlaData.msImpressos = metrics.sla.maxImpressosMs || metrics.sla.tempoImpressosMs || 0;
-          timerSlaData.msFinalizados = metrics.sla.tempoFinalizadosMs || 0;
+          timerSlaData.msPendente = metrics.sla.maxPendenteMs || 0;
+          timerSlaData.msImpressos = metrics.sla.maxImpressosMs || 0;
           atualizarBadgesSla();
+
+          const taxaElem = document.getElementById("kpi-taxa-finalizados");
+          if (taxaElem) {
+            taxaElem.innerText = metrics.sla.taxaSlaFinalizados || "100% no Prazo";
+          }
         }
       }
     } catch(e) {}
@@ -1366,7 +1370,6 @@
     acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
   }
 
-  // GERADOR NATIVO DE PDF VETORIZADO
   function gerarEBaixarPdfOficial(ordem) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
