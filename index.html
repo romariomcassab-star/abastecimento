@@ -435,7 +435,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
             <h4 class="fw-bold m-0">Confronto WMS &bull; Monitor de Separação em Tempo Real</h4>
-            <small class="text-secondary">Suba a base temporária extraída do WMS (hora a hora) para confrontar status, separador e cobrar a operação.</small>
+            <small class="text-secondary">Suba a base temporária do WMS (hora a hora) para confrontar status, separador e cobrar a operação.</small>
           </div>
         </div>
 
@@ -449,13 +449,13 @@
               <input type="file" id="wmsCsvInput" class="form-control form-control-sm" accept=".csv, text/csv">
             </div>
             <div class="col-md-3 mt-md-4">
-              <button class="btn btn-warning btn-sm w-100 fw-bold" onclick="processarBaseWmsCsv()">
+              <button id="btnProcessarCsvWms" class="btn btn-warning btn-sm w-100 fw-bold" onclick="processarBaseWmsCsv()">
                 <i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base
               </button>
             </div>
             <div class="col-md-4 mt-md-4 text-md-end">
               <span id="wmsBaseStatusBadge" class="badge bg-light text-secondary border py-2 px-3">
-                <i class="bi bi-info-circle me-1"></i> Nenhuma base temporária carregada
+                <i class="bi bi-info-circle me-1"></i> Nenhuma base carregada
               </span>
             </div>
           </div>
@@ -465,15 +465,15 @@
         <div class="bg-white p-3 rounded shadow-sm mb-3">
           <div class="row g-2 align-items-center">
             <div class="col-md-4">
-              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-461, AB-461)..." oninput="filtrarTabelaWms()">
+              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-416, AB-416)..." oninput="filtrarTabelaWms()">
             </div>
             <div class="col-md-4">
               <select id="filtroWmsStatus" class="form-select form-select-sm" onchange="filtrarTabelaWms()">
                 <option value="TODOS" selected>Todos os Estágios de Separação</option>
                 <option value="PENDENTES">Somente Em Aberto / Com Pendência (&lt; 100%)</option>
+                <option value="CONCLUIDO">100% Separado (Pronto para Retorno)</option>
                 <option value="NAO_INICIADO">Não Iniciados (0% Separado)</option>
                 <option value="EM_ANDAMENTO">Em Separação Parcial</option>
-                <option value="CONCLUIDO">100% Separado / Enviado</option>
               </select>
             </div>
             <div class="col-md-4">
@@ -604,19 +604,32 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (COM TEMPO TOTAL DE SEPARAÇÃO E COBRANÇA TEAMS LIMPA) -->
+<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (TÍTULO LIMPO, ALERTA 100% E TEAMS FORMATADO) -->
 <div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header border-bottom bg-dark text-white">
         <div>
-          <h5 class="modal-title fw-bold m-0" id="detalhesWmsModalTitle">Conferência dos Itens no WMS</h5>
+          <h5 class="modal-title fw-bold m-0" id="detalhesWmsModalTitle">Auditoria de Separação WMS</h5>
           <small class="text-secondary">Visão detalhada de cada material no coletor do separador.</small>
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
         
+        <!-- ALERTA DE 100% CONCLUÍDO PARA A ASSISTENTE CONFERIR RETORNO -->
+        <div id="wmsAlert100Box" class="alert alert-success border-success border-2 shadow-sm d-none mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="fw-bold mb-1"><i class="bi bi-check-circle-fill me-2 fs-5"></i> Ordem 100% Separada fisicamente no WMS!</h6>
+              <span class="small">Todos os materiais foram bipados. Verifique se as vias físicas já retornaram da fábrica para <strong>Finalizar e Arquivar</strong> a ordem.</span>
+            </div>
+            <button id="btnFinalizarDiretoWms" class="btn btn-success fw-bold px-3">
+              <i class="bi bi-box-arrow-down me-1"></i> Registrar Retorno e Finalizar
+            </button>
+          </div>
+        </div>
+
         <!-- PAINEL SUPERIOR DE INDICADORES DE TEMPO E SEPARAÇÃO -->
         <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
 
@@ -765,7 +778,7 @@
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -798,9 +811,23 @@
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
-  // BASE TEMPORÁRIA DO WMS CARREGADA NA SESSÃO
+  // BASE WMS (PERSISTÊNCIA LOCAL + PLANILHA)
   let wmsDataAgrupada = {};
   let wmsPedidosArray = [];
+
+  // Carrega base salva do localStorage se existir
+  const savedWmsLocal = localStorage.getItem("torre_wms_snapshot");
+  if (savedWmsLocal) {
+    try {
+      const parsed = JSON.parse(savedWmsLocal);
+      wmsDataAgrupada = parsed.base || {};
+      const badge = document.getElementById("wmsBaseStatusBadge");
+      if (badge && parsed.dataHora) {
+        badge.className = "badge bg-success py-2 px-3";
+        badge.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${parsed.dataHora}`;
+      }
+    } catch(e) {}
+  }
 
   // ESTADO DOS CRONÔMETROS DO DASHBOARD
   let timerSlaData = {
@@ -886,6 +913,7 @@
   document.addEventListener("DOMContentLoaded", function() {
     atualizarExibicaoUsuario();
     recarregarPainelCompleto();
+    carregarBaseWmsRemota();
   });
 
   async function recarregarPainelCompleto() {
@@ -898,6 +926,26 @@
     if (btn) btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores`;
   }
 
+  // BUSCA A ÚLTIMA BASE DO WMS SALVA NA PLANILHA GOOGLE
+  async function carregarBaseWmsRemota() {
+    try {
+      const res = await apiCall("obterBaseWmsConfronto");
+      if (res && res.success && res.base && Object.keys(res.base).length > 0) {
+        wmsDataAgrupada = res.base;
+        localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: res.base, dataHora: res.dataHora }));
+        
+        const badge = document.getElementById("wmsBaseStatusBadge");
+        if (badge && res.dataHora) {
+          badge.className = "badge bg-success py-2 px-3";
+          badge.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${res.dataHora}`;
+        }
+        if (wmsPedidosArray.length > 0) {
+          renderizarTabelaConfrontoWms();
+        }
+      }
+    } catch(e) {}
+  }
+
   function showSection(sectionId, element) {
     document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
     document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
@@ -908,7 +956,7 @@
     if (sectionId === "dashboard") recarregarPainelCompleto();
     if (sectionId === "controle") loadControleOrders();
     if (sectionId === "monitorWms") {
-      if (wmsPedidosArray.length === 0) loadControleOrders();
+      renderizarTabelaConfrontoWms();
     }
     if (sectionId === "historico") loadAuditPage(1);
   }
@@ -937,7 +985,7 @@
   }
 
   // =========================================================================
-  // PROCESSAMENTO DA BASE TEMPORÁRIA DO WMS (relatorioMonitorExp.csv)
+  // PROCESSAMENTO DA BASE TEMPORÁRIA DO WMS (PERSISTÊNCIA NA PLANILHA)
   // =========================================================================
   function parseCSVLine(text) {
     const p = [',', ';', '\t'];
@@ -956,9 +1004,13 @@
     }
 
     const file = fileInput.files[0];
+    const btn = document.getElementById("btnProcessarCsvWms");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Gravando na Planilha...`;
+
     const reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
       try {
         const text = e.target.result;
         const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -1048,21 +1100,43 @@
           });
         }
 
-        const totalPedidosWms = Object.keys(wmsDataAgrupada).length;
+        // Converte sets de separadores para array antes de persistir
+        const payloadPersistencia = {};
+        for (const ped in wmsDataAgrupada) {
+          payloadPersistencia[ped] = {
+            ...wmsDataAgrupada[ped],
+            separadores: Array.from(wmsDataAgrupada[ped].separadores)
+          };
+        }
+
         const nowHoraFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+        // Salva na Planilha do Google (aba WMS_CONFRONTO) e no localStorage
+        localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: payloadPersistencia, dataHora: nowHoraFmt }));
+        
+        await apiCall("salvarBaseWmsConfronto", {
+          pedidosWms: payloadPersistencia,
+          horaUpload: nowHoraFmt
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base`;
+
+        const totalPedidosWms = Object.keys(wmsDataAgrupada).length;
         document.getElementById("wmsBaseStatusBadge").className = "badge bg-success py-2 px-3";
-        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base carregada às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
+        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
 
         renderizarTabelaConfrontoWms();
 
         showSysAlert(
-          "Base WMS Carregada com Sucesso!",
-          `Foram identificados <strong>${totalPedidosWms} pedidos</strong> e <strong>${lines.length - 1} linhas</strong> de separação.<br>O confronto está ativo na tabela abaixo.`,
+          "Base WMS Salva na Planilha com Sucesso!",
+          `Foram gravados <strong>${totalPedidosWms} pedidos</strong> na aba <strong>WMS_CONFRONTO</strong>.<br>A base permanecerá salva mesmo se recarregar a página!`,
           "success"
         );
 
       } catch(err) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base`;
         showSysAlert("Erro no Arquivo", err.message, "danger");
       }
     };
@@ -1095,7 +1169,8 @@
       if (wmsInfo) {
         qtdSep = wmsInfo.qtdSeparada;
         pct = wmsInfo.qtdTotal > 0 ? Math.min(100, Math.round((wmsInfo.qtdSeparada / wmsInfo.qtdTotal) * 100)) : 0;
-        separador = Array.from(wmsInfo.separadores).join(", ") || "Em fila";
+        const sepArr = Array.isArray(wmsInfo.separadores) ? wmsInfo.separadores : Array.from(wmsInfo.separadores || []);
+        separador = sepArr.join(", ") || "Em fila";
         statusWms = wmsInfo.situacao || (pct === 100 ? "SEPARADO" : "EM SEPARAÇÃO");
       }
 
@@ -1133,9 +1208,9 @@
       if (buscaNsa && !item.nsa.toLowerCase().includes(buscaNsa)) return false;
       if (buscaSep && !item.separador.toLowerCase().includes(buscaSep)) return false;
       if (filtroStatus === "PENDENTES" && item.pct === 100) return false;
+      if (filtroStatus === "CONCLUIDO" && item.pct < 100) return false;
       if (filtroStatus === "NAO_INICIADO" && item.pct > 0) return false;
       if (filtroStatus === "EM_ANDAMENTO" && (item.pct === 0 || item.pct === 100)) return false;
-      if (filtroStatus === "CONCLUIDO" && item.pct < 100) return false;
       return true;
     });
 
@@ -1193,18 +1268,20 @@
   }
 
   // =========================================================================
-  // DETALHES DE CONFRONTO COM TEMPO DE SEPARAÇÃO E FORMATAÇÃO LIMPA P/ TEAMS
+  // DETALHES DE CONFRONTO COM TÍTULO LIMPO, ALERTA 100% E TEAMS FORMATADO
   // =========================================================================
   function abrirModalConfrontoDetalhe(nsa) {
     const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
     if (!pedidoObj) return;
 
-    document.getElementById("detalhesWmsModalTitle").innerText = `Confronto WMS &bull; Pedido ${nsa} (${pedidoObj.documento})`;
+    // TÍTULO LIMPO E OFICIAL
+    document.getElementById("detalhesWmsModalTitle").innerText = `Auditoria de Separação WMS | Ordem ${nsa} (${pedidoObj.documento})`;
     const tbody = document.getElementById("detalhesWmsModalBody");
     tbody.innerHTML = "";
 
     const itens = pedidoObj.wmsInfo ? pedidoObj.wmsInfo.itens : [];
 
+    // 1. Cálculo de Tempos do Processo de Separação
     let tempoSeparacaoTexto = "Não iniciada";
     let primeiroBipFormatado = "-";
     let ultimoBipFormatado = "-";
@@ -1218,6 +1295,19 @@
       tempoSeparacaoTexto = formatarDuracaoMs(duracaoSepMs);
     }
 
+    // 2. Alerta de 100% Concluído para Retorno Físico
+    const alertBox = document.getElementById("wmsAlert100Box");
+    if (pedidoObj.pct === 100 && !pedidoObj.isFinalizado) {
+      alertBox.classList.remove("d-none");
+      document.getElementById("btnFinalizarDiretoWms").onclick = function() {
+        bootstrap.Modal.getInstance(document.getElementById("sysDetalhesWmsModal")).hide();
+        abrirModalFinalizarRecebimento(nsa);
+      };
+    } else {
+      alertBox.classList.add("d-none");
+    }
+
+    // 3. Painel Superior de Indicadores
     const metricsContainer = document.getElementById("wmsDetailHeaderMetrics");
     metricsContainer.innerHTML = `
       <div class="col-md-3">
@@ -1246,6 +1336,7 @@
       </div>
     `;
 
+    // 4. Renderização dos Itens e Coleta de Pendências
     const itensPendentes = [];
 
     if (itens.length === 0) {
@@ -1280,7 +1371,7 @@
       });
     }
 
-    // Copiador Limpo com ClipboardItem (HTML Puro para o Teams - Zero Asteriscos)
+    // 5. Copiador Limpo em HTML Rico (Zero Asteriscos no Teams)
     document.getElementById("btnCopiarResumoCobranca").onclick = async function() {
       const nowFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -2027,141 +2118,4 @@
       doc.setFontSize(9);
       doc.text(`Estabelecimento:    ${ordem.estabelecimento}`, 15, 31.2);
 
-      doc.setTextColor(0, 0, 0);
-
-      doc.autoTable({
-        startY: 35,
-        margin: { left: 12, right: 12 },
-        head: [["Produto", "Localizacao", "Lote", "Validade", "Origem", "Destino", "Quantidade", "Pedido WMS"]],
-        body: tableBody,
-        theme: "grid",
-        styles: {
-          fontSize: 8.5,
-          cellPadding: 1.6,
-          lineColor: [0, 0, 0],
-          lineWidth: 0.2,
-          textColor: [0, 0, 0]
-        },
-        headStyles: {
-          fillColor: [34, 34, 34],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-          halign: "center"
-        },
-        columnStyles: {
-          0: { cellWidth: 90, halign: "left" },
-          1: { cellWidth: 24, halign: "center" },
-          2: { cellWidth: 32, halign: "center", fontStyle: "bold" },
-          3: { cellWidth: 26, halign: "center" },
-          4: { cellWidth: 20, halign: "center" },
-          5: { cellWidth: 20, halign: "center" },
-          6: { cellWidth: 31, halign: "right", fontStyle: "bold" },
-          7: { cellWidth: 30, halign: "center" }
-        }
-      });
-
-      let finalY = doc.lastAutoTable.finalY + 4;
-      if (finalY > 170) finalY = 170;
-
-      doc.setFont("helvetica", "italic");
-      doc.setFontSize(8.5);
-      doc.text("Observação:", 12, finalY);
-      doc.rect(12, finalY + 1.5, 273, 10);
-
-      const signY = finalY + 22;
-      doc.line(30, signY, 115, signY);
-      doc.line(180, signY, 265, signY);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.text("Responsável do Envio", 72.5, signY + 4, { align: "center" });
-      doc.text("Responsável do Recebimento", 222.5, signY + 4, { align: "center" });
-    }
-
-    const nomeArquivo = `Ordem_${ordem.nsa}.pdf`;
-    doc.save(nomeArquivo);
-
-    showSysAlert(
-      "Ordem Gerada com Sucesso!",
-      `O arquivo oficial <strong>${nomeArquivo}</strong> foi gerado por <strong>${nomeUsuarioImpressao}</strong> e baixado na máquina.<br>2 vias prontas para impressão limpa.`,
-      "success"
-    );
-  }
-
-  async function loadAuditPage(page) {
-    currentAuditPage = page;
-    const filters = {
-      page: page,
-      pageSize: 15,
-      dataInicio: document.getElementById("auditDataInicio").value,
-      dataFim: document.getElementById("auditDataFim").value,
-      nsa: document.getElementById("auditNsaBusca").value
-    };
-
-    try {
-      const res = await apiCall("getAuditHistory", { filters: filters });
-      const tbody = document.getElementById("tableHistoryBody");
-      tbody.innerHTML = "";
-      
-      if (!res.items || res.items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhum registro de auditoria encontrado para o período.</td></tr>`;
-        document.getElementById("auditTotalInfo").innerText = "0 registros encontrados";
-        document.getElementById("auditPaginationUl").innerHTML = "";
-        return;
-      }
-
-      res.items.forEach(h => {
-        tbody.innerHTML += `
-          <tr>
-            <td><small>${h.dataHora}</small></td>
-            <td><strong class="text-primary">${h.nsa}</strong></td>
-            <td><span class="badge bg-secondary">${h.acao}</span></td>
-            <td>${h.statusAnterior} &rarr; <strong>${h.statusNovo}</strong></td>
-            <td><small>${h.usuario}</small></td>
-            <td><span class="badge bg-dark">${h.area}</span></td>
-            <td><small>${h.observacao}</small></td>
-          </tr>
-        `;
-      });
-
-      const inicioFmt = ((res.page - 1) * res.pageSize) + 1;
-      const fimFmt = Math.min(res.total, res.page * res.pageSize);
-      document.getElementById("auditTotalInfo").innerText = `Exibindo ${inicioFmt}–${fimFmt} de ${res.total} registros (Página ${res.page} de ${res.totalPages})`;
-
-      renderPaginationButtons(res.page, res.totalPages);
-    } catch(e) {}
-  }
-
-  function renderPaginationButtons(currentPage, totalPages) {
-    const ul = document.getElementById("auditPaginationUl");
-    ul.innerHTML = "";
-
-    ul.innerHTML += `
-      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage - 1})">&laquo;</a>
-      </li>
-    `;
-
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(totalPages, startPage + 4);
-    if (endPage - startPage < 4) {
-      startPage = Math.max(1, endPage - 4);
-    }
-
-    for (let p = startPage; p <= endPage; p++) {
-      ul.innerHTML += `
-        <li class="page-item ${p === currentPage ? 'active' : ''}">
-          <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${p})">${p}</a>
-        </li>
-      `;
-    }
-
-    ul.innerHTML += `
-      <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage + 1})">&raquo;</a>
-      </li>
-    `;
-  }
-</script>
-</body>
-</html>
+      doc.
