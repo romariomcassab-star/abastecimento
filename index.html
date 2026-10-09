@@ -219,13 +219,13 @@
 
     /* BOTÃO PERSONALIZADO TEAMS */
     .btn-teams {
-      background-color: #464eb8;
+      background-color: #5059c9;
       color: #fff;
-      border: 1px solid #3b429f;
+      border: 1px solid #434ba8;
       font-weight: 600;
     }
     .btn-teams:hover {
-      background-color: #3b429f;
+      background-color: #4048b0;
       color: #fff;
     }
   </style>
@@ -604,7 +604,7 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (COM TEMPO TOTAL DE SEPARAÇÃO E COBRANÇA TEAMS LIMPA) -->
+<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (COM TEMPO TOTAL DE SEPARAÇÃO E COBRANÇA TEAMS) -->
 <div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
@@ -618,7 +618,9 @@
       <div class="modal-body p-3">
         
         <!-- PAINEL SUPERIOR DE INDICADORES DE TEMPO E SEPARAÇÃO -->
-        <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
+        <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
 
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle border">
@@ -808,6 +810,7 @@
     msImpressos: 0
   };
 
+  // FORMATAÇÃO DO RELÓGIO COM SEGUNDOS (DIA + HH:MM:SS)
   function formatarDuracaoMs(ms) {
     if (!ms || ms <= 0) return "0d 00:00:00";
     const totalSegundos = Math.floor(ms / 1000);
@@ -819,6 +822,7 @@
     return `${dias}d ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
 
+  // ATUALIZAÇÃO AO VIVO SEGUNDO A SEGUNDO DOS RELÓGIOS
   function updateAllLiveClocks() {
     const now = Date.now();
     const limite24h = 24 * 3600 * 1000;
@@ -844,6 +848,7 @@
     renderCardBadge("cron-pendente", timerSlaData.msPendente);
     renderCardBadge("cron-impressos", timerSlaData.msImpressos);
 
+    // Atualiza relógios das linhas em ambas as tabelas
     document.querySelectorAll(".live-timer-row").forEach(el => {
       const startMs = parseInt(el.getAttribute("data-start"), 10);
       const isFinalizado = el.getAttribute("data-finalizado") === "true";
@@ -1183,7 +1188,7 @@
   }
 
   // =========================================================================
-  // DETALHES DE CONFRONTO COM TEMPO DE SEPARAÇÃO E FORMATAÇÃO LIMPA P/ TEAMS
+  // DETALHES DE CONFRONTO COM TEMPO DE SEPARAÇÃO E MENSAGEM TEAMS
   // =========================================================================
   function abrirModalConfrontoDetalhe(nsa) {
     const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
@@ -1204,6 +1209,7 @@
       primeiroBipFormatado = new Date(pedidoObj.wmsInfo.primeiroBip).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       ultimoBipFormatado = new Date(pedidoObj.wmsInfo.ultimoBip).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+      // Se já está 100%, o tempo de separação é fechado; se estiver em andamento, conta até agora
       const fimMs = pedidoObj.pct === 100 ? pedidoObj.wmsInfo.ultimoBip : Date.now();
       const duracaoSepMs = Math.max(0, fimMs - pedidoObj.wmsInfo.primeiroBip);
       tempoSeparacaoTexto = formatarDuracaoMs(duracaoSepMs);
@@ -1232,7 +1238,7 @@
       </div>
       <div class="col-md-3">
         <div class="card p-2 border-0 bg-light shadow-sm text-center border-start border-primary border-3">
-          <small class="text-secondary fw-bold" style="font-size: 0.72rem;">TEMPO DE SEPARAÇÃO</small>
+          <small class="text-secondary fw-bold" style="font-size: 0.72rem;">TEMPO TOTAL DE SEPARAÇÃO</small>
           <strong class="fs-6 text-primary">${tempoSeparacaoTexto}</strong>
         </div>
       </div>
@@ -1273,58 +1279,32 @@
       });
     }
 
-    // 4. Copiador Limpo com ClipboardItem (HTML Puro para o Teams - Zero Asteriscos)
-    document.getElementById("btnCopiarResumoCobranca").onclick = async function() {
+    // 4. Construtor Automatizado de Mensagem Profissional para o Microsoft Teams
+    document.getElementById("btnCopiarResumoCobranca").onclick = function() {
       const nowFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-      // Versão HTML formatada nativa (O Teams cola com negrito real e sem asteriscos)
-      let htmlMsg = `<p>📢 <b>ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA</b> (${nowFmt})</p>`;
-      htmlMsg += `<p>📌 <b>Ordem / NSA:</b> ${pedidoObj.nsa} (${pedidoObj.documento})<br>`;
-      htmlMsg += `👤 <b>Separador Responsável:</b> ${pedidoObj.separador}<br>`;
-      htmlMsg += `⏱ <b>Tempo de Separação em Andamento:</b> ${tempoSeparacaoTexto}<br>`;
-      htmlMsg += `📊 <b>Status do Pedido:</b> ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)</p>`;
+      let msg = `📢 **ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA** (${nowFmt})\n\n`;
+      msg += `📌 **Ordem / NSA:** ${pedidoObj.nsa} (${pedidoObj.documento})\n`;
+      msg += `👤 **Separador Responsável:** ${pedidoObj.separador}\n`;
+      msg += `⏱ **Tempo de Separação em Andamento:** ${tempoSeparacaoTexto}\n`;
+      msg += `📊 **Status do Pedido:** ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)\n\n`;
 
       if (itensPendentes.length > 0) {
-        htmlMsg += `<p>⚠️ <b>ITENS PENDENTES DE FINALIZAÇÃO:</b><br>`;
+        msg += `⚠️ **ITENS PENDENTES DE FINALIZAÇÃO:**\n`;
         itensPendentes.forEach(p => {
-          htmlMsg += `&bull; <b>${p.codigo}</b> | Lote: <b>${p.lote}</b> | Endereço: <b>${p.endereco}</b> | Falta separar: <b>${p.pendente.toLocaleString('pt-BR')} KG</b><br>`;
+          msg += `• **${p.codigo}** | Lote: **${p.lote}** | Endereço: **${p.endereco}** | Falta separar: **${p.pendente.toLocaleString('pt-BR')} KG**\n`;
         });
-        htmlMsg += `</p><p>Favor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭</p>`;
+        msg += `\nFavor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭`;
       } else {
-        htmlMsg += `<p>✅ <b>Todos os itens já foram separados com sucesso no WMS!</b> Aguardando conferência final e expedição.</p>`;
+        msg += `✅ **Todos os itens já foram separados com sucesso no WMS!** Aguardando conferência final e expedição.`;
       }
 
-      // Versão Texto Plano sem asteriscos para fallback
-      let plainText = `📢 ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA (${nowFmt})\n\n`;
-      plainText += `📌 Ordem / NSA: ${pedidoObj.nsa} (${pedidoObj.documento})\n`;
-      plainText += `👤 Separador Responsável: ${pedidoObj.separador}\n`;
-      plainText += `⏱ Tempo de Separação em Andamento: ${tempoSeparacaoTexto}\n`;
-      plainText += `📊 Status do Pedido: ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)\n\n`;
-
-      if (itensPendentes.length > 0) {
-        plainText += `⚠️ ITENS PENDENTES DE FINALIZAÇÃO:\n`;
-        itensPendentes.forEach(p => {
-          plainText += `• ${p.codigo} | Lote: ${p.lote} | Endereço: ${p.endereco} | Falta separar: ${p.pendente.toLocaleString('pt-BR')} KG\n`;
-        });
-        plainText += `\nFavor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭`;
-      } else {
-        plainText += `✅ Todos os itens já foram separados com sucesso no WMS! Aguardando conferência final e expedição.`;
-      }
-
-      try {
-        const blobHtml = new Blob([htmlMsg], { type: "text/html" });
-        const blobText = new Blob([plainText], { type: "text/plain" });
-        const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
-        await navigator.clipboard.write(data);
-      } catch (e) {
-        await navigator.clipboard.writeText(plainText);
-      }
-
-      showSysAlert(
-        "Mensagem Limpa Copiada!",
-        `O relatório do pedido <strong>${pedidoObj.nsa}</strong> foi copiado para a área de transferência sem asteriscos.<br>Cole diretamente no <strong>Microsoft Teams</strong> com <strong>Ctrl + V</strong>.`,
-        "success"
-      );
+      navigator.clipboard.writeText(msg).then(() => {
+        showSysAlert(
+          "Mensagem Formatada Copiada!",
+          `O relatório completo do pedido <strong>${pedidoObj.nsa}</strong> foi copiado para a área de transferência.<br>Basta colar diretamente no chat do <strong>Microsoft Teams</strong>.`,
+          "success"
+        );
+      });
     };
 
     new bootstrap.Modal(document.getElementById("sysDetalhesWmsModal")).show();
@@ -2071,4 +2051,94 @@
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.text("Responsável do Envio", 72.5, signY
+      doc.text("Responsável do Envio", 72.5, signY + 4, { align: "center" });
+      doc.text("Responsável do Recebimento", 222.5, signY + 4, { align: "center" });
+    }
+
+    const nomeArquivo = `Ordem_${ordem.nsa}.pdf`;
+    doc.save(nomeArquivo);
+
+    showSysAlert(
+      "Ordem Gerada com Sucesso!",
+      `O arquivo oficial <strong>${nomeArquivo}</strong> foi gerado por <strong>${nomeUsuarioImpressao}</strong> e baixado na máquina.<br>2 vias prontas para impressão limpa.`,
+      "success"
+    );
+  }
+
+  async function loadAuditPage(page) {
+    currentAuditPage = page;
+    const filters = {
+      page: page,
+      pageSize: 15,
+      dataInicio: document.getElementById("auditDataInicio").value,
+      dataFim: document.getElementById("auditDataFim").value,
+      nsa: document.getElementById("auditNsaBusca").value
+    };
+
+    try {
+      const res = await apiCall("getAuditHistory", { filters: filters });
+      const tbody = document.getElementById("tableHistoryBody");
+      tbody.innerHTML = "";
+      
+      if (!res.items || res.items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhum registro de auditoria encontrado para o período.</td></tr>`;
+        document.getElementById("auditTotalInfo").innerText = "0 registros encontrados";
+        document.getElementById("auditPaginationUl").innerHTML = "";
+        return;
+      }
+
+      res.items.forEach(h => {
+        tbody.innerHTML += `
+          <tr>
+            <td><small>${h.dataHora}</small></td>
+            <td><strong class="text-primary">${h.nsa}</strong></td>
+            <td><span class="badge bg-secondary">${h.acao}</span></td>
+            <td>${h.statusAnterior} &rarr; <strong>${h.statusNovo}</strong></td>
+            <td><small>${h.usuario}</small></td>
+            <td><span class="badge bg-dark">${h.area}</span></td>
+            <td><small>${h.observacao}</small></td>
+          </tr>
+        `;
+      });
+
+      const inicioFmt = ((res.page - 1) * res.pageSize) + 1;
+      const fimFmt = Math.min(res.total, res.page * res.pageSize);
+      document.getElementById("auditTotalInfo").innerText = `Exibindo ${inicioFmt}–${fimFmt} de ${res.total} registros (Página ${res.page} de ${res.totalPages})`;
+
+      renderPaginationButtons(res.page, res.totalPages);
+    } catch(e) {}
+  }
+
+  function renderPaginationButtons(currentPage, totalPages) {
+    const ul = document.getElementById("auditPaginationUl");
+    ul.innerHTML = "";
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage - 1})">&laquo;</a>
+      </li>
+    `;
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      ul.innerHTML += `
+        <li class="page-item ${p === currentPage ? 'active' : ''}">
+          <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${p})">${p}</a>
+        </li>
+      `;
+    }
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage + 1})">&raquo;</a>
+      </li>
+    `;
+  }
+</script>
+</body>
+</html>
