@@ -270,7 +270,7 @@
     <!-- ÁREA DE CONTEÚDO -->
     <div class="col-md-10 main-content">
       
-      <!-- DASHBOARD COM RELÓGIOS CORRENDO AO VIVO -->
+      <!-- DASHBOARD COM RELÓGIOS AO VIVO -->
       <div id="sec-dashboard" class="content-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold m-0">Visão Geral da Torre de Controle</h4>
@@ -293,7 +293,7 @@
             </div>
           </div>
 
-          <!-- CARD AGUARDANDO IMPRESSÃO COM RELÓGIO AO VIVO -->
+          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
@@ -306,7 +306,7 @@
             </div>
           </div>
 
-          <!-- CARD IMPRESSOS / COM OPERADOR COM RELÓGIO AO VIVO -->
+          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
@@ -319,7 +319,7 @@
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS COM TAXA DE PERFORMANCE -->
+          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
@@ -604,7 +604,7 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (TÍTULO LIMPO, ALERTA 100% E TEAMS FORMATADO) -->
+<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM -->
 <div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
@@ -617,7 +617,7 @@
       </div>
       <div class="modal-body p-3">
         
-        <!-- ALERTA DE 100% CONCLUÍDO PARA A ASSISTENTE CONFERIR RETORNO -->
+        <!-- ALERTA DE 100% CONCLUÍDO -->
         <div id="wmsAlert100Box" class="alert alert-success border-success border-2 shadow-sm d-none mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -630,7 +630,7 @@
           </div>
         </div>
 
-        <!-- PAINEL SUPERIOR DE INDICADORES DE TEMPO E SEPARAÇÃO -->
+        <!-- PAINEL SUPERIOR DE INDICADORES -->
         <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
 
         <div class="table-responsive">
@@ -751,9 +751,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // URL OFICIAL DO SEU APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
+  // USUÁRIO DA SESSÃO ATIVA
   let currentUserSession = {
     nome: "ROMÁRIO SILVA",
     email: "romario.mcassab@gmail.com",
@@ -761,11 +761,31 @@
     perfil: "ADMIN"
   };
 
-  const savedSession = localStorage.getItem("torre_user_session");
-  if (savedSession) {
-    try { currentUserSession = JSON.parse(savedSession); } catch(e) {}
+  try {
+    const saved = localStorage.getItem("torre_user_session");
+    if (saved) currentUserSession = JSON.parse(saved);
+  } catch(e) {}
+
+  // ==========================================
+  // NAVEGAÇÃO IMEDIATA (NUNCA BLOQUEIA CLIQUES)
+  // ==========================================
+  function showSection(sectionId, element) {
+    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
+    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
+    
+    const target = document.getElementById("sec-" + sectionId);
+    if (target) target.classList.remove("d-none");
+    if (element) element.classList.add("active");
+
+    if (sectionId === "dashboard") recarregarPainelCompleto();
+    if (sectionId === "controle") loadControleOrders();
+    if (sectionId === "monitorWms") {
+      renderizarTabelaConfrontoWms();
+    }
+    if (sectionId === "historico") loadAuditPage(1);
   }
 
+  // COMUNICAÇÃO ROBUSTA COM TIMEOUT
   async function apiCall(action, payload = {}) {
     const bodyData = { 
       action: action, 
@@ -778,7 +798,7 @@
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const response = await fetch(APPS_SCRIPT_URL, {
         method: "POST",
@@ -796,7 +816,7 @@
     const novoNome = prompt("Informe o nome do colaborador:", currentUserSession.nome);
     if (novoNome && novoNome.trim().length > 2) {
       currentUserSession.nome = novoNome.trim().toUpperCase();
-      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
+      try { localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession)); } catch(e) {}
       atualizarExibicaoUsuario();
     }
   }
@@ -811,25 +831,18 @@
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
-  // BASE WMS (PERSISTÊNCIA LOCAL + PLANILHA)
+  // BASE WMS (EM MEMÓRIA E CACHE LOCAL)
   let wmsDataAgrupada = {};
   let wmsPedidosArray = [];
 
-  // Carrega base salva do localStorage se existir
-  const savedWmsLocal = localStorage.getItem("torre_wms_snapshot");
-  if (savedWmsLocal) {
-    try {
+  try {
+    const savedWmsLocal = localStorage.getItem("torre_wms_snapshot");
+    if (savedWmsLocal) {
       const parsed = JSON.parse(savedWmsLocal);
       wmsDataAgrupada = parsed.base || {};
-      const badge = document.getElementById("wmsBaseStatusBadge");
-      if (badge && parsed.dataHora) {
-        badge.className = "badge bg-success py-2 px-3";
-        badge.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${parsed.dataHora}`;
-      }
-    } catch(e) {}
-  }
+    }
+  } catch(e) {}
 
-  // ESTADO DOS CRONÔMETROS DO DASHBOARD
   let timerSlaData = {
     msPendente: 0,
     msImpressos: 0
@@ -893,17 +906,16 @@
 
   setInterval(updateAllLiveClocks, 1000);
 
-  const SVGS = {
-    success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
-    danger: `<i class="bi bi-x-circle-fill fs-2 text-danger"></i>`,
-    warning: `<i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>`,
-    info: `<i class="bi bi-info-circle-fill fs-2 text-primary"></i>`
-  };
-
   function showSysAlert(title, message, type = "info") {
     const iconDiv = document.getElementById("sysAlertIcon");
+    const icons = {
+      success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
+      danger: `<i class="bi bi-x-circle-fill fs-2 text-danger"></i>`,
+      warning: `<i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>`,
+      info: `<i class="bi bi-info-circle-fill fs-2 text-primary"></i>`
+    };
     iconDiv.className = `icon-container ${type} mx-auto`;
-    iconDiv.innerHTML = SVGS[type] || SVGS.info;
+    iconDiv.innerHTML = icons[type] || icons.info;
     document.getElementById("sysAlertTitle").innerText = title;
     document.getElementById("sysAlertMessage").innerHTML = message;
     new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
@@ -913,62 +925,26 @@
   document.addEventListener("DOMContentLoaded", function() {
     atualizarExibicaoUsuario();
     recarregarPainelCompleto();
-    carregarBaseWmsRemota();
   });
 
   async function recarregarPainelCompleto() {
     const btn = document.getElementById("btnAtualizarDashboard");
     if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Atualizando...`;
 
-    await loadDashboard();
     await loadControleOrders();
+    await loadDashboard();
 
     if (btn) btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores`;
-  }
-
-  // BUSCA A ÚLTIMA BASE DO WMS SALVA NA PLANILHA GOOGLE
-  async function carregarBaseWmsRemota() {
-    try {
-      const res = await apiCall("obterBaseWmsConfronto");
-      if (res && res.success && res.base && Object.keys(res.base).length > 0) {
-        wmsDataAgrupada = res.base;
-        localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: res.base, dataHora: res.dataHora }));
-        
-        const badge = document.getElementById("wmsBaseStatusBadge");
-        if (badge && res.dataHora) {
-          badge.className = "badge bg-success py-2 px-3";
-          badge.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${res.dataHora}`;
-        }
-        if (wmsPedidosArray.length > 0) {
-          renderizarTabelaConfrontoWms();
-        }
-      }
-    } catch(e) {}
-  }
-
-  function showSection(sectionId, element) {
-    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
-    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
-    
-    document.getElementById("sec-" + sectionId).classList.remove("d-none");
-    if (element) element.classList.add("active");
-
-    if (sectionId === "dashboard") recarregarPainelCompleto();
-    if (sectionId === "controle") loadControleOrders();
-    if (sectionId === "monitorWms") {
-      renderizarTabelaConfrontoWms();
-    }
-    if (sectionId === "historico") loadAuditPage(1);
   }
 
   async function loadDashboard() {
     try {
       const metrics = await apiCall("getDashboardMetrics");
-      if (metrics) {
-        document.getElementById("kpi-total").innerText = metrics.total || 0;
-        document.getElementById("kpi-pendente").innerText = metrics.pendenteImpressao || 0;
-        document.getElementById("kpi-impressos").innerText = metrics.impressos || 0;
-        document.getElementById("kpi-finalizados").innerText = metrics.finalizados || 0;
+      if (metrics && metrics.total !== undefined) {
+        document.getElementById("kpi-total").innerText = metrics.total;
+        document.getElementById("kpi-pendente").innerText = metrics.pendenteImpressao;
+        document.getElementById("kpi-impressos").innerText = metrics.impressos;
+        document.getElementById("kpi-finalizados").innerText = metrics.finalizados;
 
         if (metrics.sla) {
           timerSlaData.msPendente = metrics.sla.maxPendenteMs || 0;
@@ -976,16 +952,28 @@
           updateAllLiveClocks();
 
           const taxaElem = document.getElementById("kpi-taxa-finalizados");
-          if (taxaElem) {
-            taxaElem.innerText = metrics.sla.taxaSlaFinalizados || "100% no Prazo";
-          }
+          if (taxaElem) taxaElem.innerText = metrics.sla.taxaSlaFinalizados || "100% no Prazo";
+        }
+      } else {
+        const grupos = Object.values(cacheGruposNsa);
+        if (grupos.length > 0) {
+          let pend = 0, imp = 0, fin = 0;
+          grupos.forEach(g => {
+            if (g.status === "FINALIZADO") fin++;
+            else if (g.status === "IMPRESSO" || g.status === "ENTREGUE AO OPERADOR") imp++;
+            else pend++;
+          });
+          document.getElementById("kpi-total").innerText = grupos.length;
+          document.getElementById("kpi-pendente").innerText = pend;
+          document.getElementById("kpi-impressos").innerText = imp;
+          document.getElementById("kpi-finalizados").innerText = fin;
         }
       }
     } catch(e) {}
   }
 
   // =========================================================================
-  // PROCESSAMENTO DA BASE TEMPORÁRIA DO WMS (PERSISTÊNCIA NA PLANILHA)
+  // PROCESSAMENTO DO CSV WMS
   // =========================================================================
   function parseCSVLine(text) {
     const p = [',', ';', '\t'];
@@ -1006,7 +994,7 @@
     const file = fileInput.files[0];
     const btn = document.getElementById("btnProcessarCsvWms");
     btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Gravando na Planilha...`;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Analisando...`;
 
     const reader = new FileReader();
 
@@ -1100,7 +1088,6 @@
           });
         }
 
-        // Converte sets de separadores para array antes de persistir
         const payloadPersistencia = {};
         for (const ped in wmsDataAgrupada) {
           payloadPersistencia[ped] = {
@@ -1111,26 +1098,24 @@
 
         const nowHoraFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-        // Salva na Planilha do Google (aba WMS_CONFRONTO) e no localStorage
-        localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: payloadPersistencia, dataHora: nowHoraFmt }));
-        
-        await apiCall("salvarBaseWmsConfronto", {
-          pedidosWms: payloadPersistencia,
-          horaUpload: nowHoraFmt
-        });
+        try {
+          localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: payloadPersistencia, dataHora: nowHoraFmt }));
+        } catch(storageErr) {
+          console.warn("Storage local cheio, mantendo em memória.");
+        }
 
         btn.disabled = false;
         btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base`;
 
         const totalPedidosWms = Object.keys(wmsDataAgrupada).length;
         document.getElementById("wmsBaseStatusBadge").className = "badge bg-success py-2 px-3";
-        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base salva às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
+        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base analisada às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
 
         renderizarTabelaConfrontoWms();
 
         showSysAlert(
-          "Base WMS Salva na Planilha com Sucesso!",
-          `Foram gravados <strong>${totalPedidosWms} pedidos</strong> na aba <strong>WMS_CONFRONTO</strong>.<br>A base permanecerá salva mesmo se recarregar a página!`,
+          "Base WMS Analisada com Sucesso!",
+          `Foram confrontados <strong>${totalPedidosWms} pedidos</strong> de expedição com as ordens de fábrica.<br>Veja a tabela abaixo com o status atualizado de cada lote!`,
           "success"
         );
 
@@ -1219,12 +1204,13 @@
       return;
     }
 
+    let rowsHtml = "";
     filtrados.forEach(it => {
       let corBarra = "bg-danger";
       if (it.pct >= 100) corBarra = "bg-success";
       else if (it.pct > 0) corBarra = "bg-warning";
 
-      tbody.innerHTML += `
+      rowsHtml += `
         <tr>
           <td>
             <strong class="text-primary">${it.nsa}</strong>
@@ -1264,24 +1250,23 @@
       `;
     });
 
+    tbody.innerHTML = rowsHtml;
     updateAllLiveClocks();
   }
 
   // =========================================================================
-  // DETALHES DE CONFRONTO COM TÍTULO LIMPO, ALERTA 100% E TEAMS FORMATADO
+  // DETALHES DE CONFRONTO WMS E COBRANÇA FORMATADA NO TEAMS
   // =========================================================================
   function abrirModalConfrontoDetalhe(nsa) {
     const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
     if (!pedidoObj) return;
 
-    // TÍTULO LIMPO E OFICIAL
     document.getElementById("detalhesWmsModalTitle").innerText = `Auditoria de Separação WMS | Ordem ${nsa} (${pedidoObj.documento})`;
     const tbody = document.getElementById("detalhesWmsModalBody");
     tbody.innerHTML = "";
 
     const itens = pedidoObj.wmsInfo ? pedidoObj.wmsInfo.itens : [];
 
-    // 1. Cálculo de Tempos do Processo de Separação
     let tempoSeparacaoTexto = "Não iniciada";
     let primeiroBipFormatado = "-";
     let ultimoBipFormatado = "-";
@@ -1295,7 +1280,6 @@
       tempoSeparacaoTexto = formatarDuracaoMs(duracaoSepMs);
     }
 
-    // 2. Alerta de 100% Concluído para Retorno Físico
     const alertBox = document.getElementById("wmsAlert100Box");
     if (pedidoObj.pct === 100 && !pedidoObj.isFinalizado) {
       alertBox.classList.remove("d-none");
@@ -1307,7 +1291,6 @@
       alertBox.classList.add("d-none");
     }
 
-    // 3. Painel Superior de Indicadores
     const metricsContainer = document.getElementById("wmsDetailHeaderMetrics");
     metricsContainer.innerHTML = `
       <div class="col-md-3">
@@ -1336,12 +1319,12 @@
       </div>
     `;
 
-    // 4. Renderização dos Itens e Coleta de Pendências
     const itensPendentes = [];
 
     if (itens.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted p-4">Este pedido ainda não teve itens bipados no WMS.</td></tr>`;
     } else {
+      let itensHtml = "";
       itens.forEach(it => {
         const ok = it.qtdSeparada >= it.quantidade;
         if (!ok) {
@@ -1355,7 +1338,7 @@
           });
         }
 
-        tbody.innerHTML += `
+        itensHtml += `
           <tr class="${ok ? 'table-success bg-opacity-25' : 'table-warning bg-opacity-25'}">
             <td><strong>${it.codigo}</strong></td>
             <td><small>${it.descricao}</small></td>
@@ -1369,9 +1352,9 @@
           </tr>
         `;
       });
+      tbody.innerHTML = itensHtml;
     }
 
-    // 5. Copiador Limpo em HTML Rico (Zero Asteriscos no Teams)
     document.getElementById("btnCopiarResumoCobranca").onclick = async function() {
       const nowFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -1426,7 +1409,484 @@
     new bootstrap.Modal(document.getElementById("sysDetalhesWmsModal")).show();
   }
 
+  // =========================================================================
+  // CARREGAMENTO DAS ORDENS DE CONTROLE
+  // =========================================================================
+  async function loadControleOrders() {
+    const filters = {
+      nsa: document.getElementById("filtroNsaCtrl").value,
+      status: document.getElementById("filtroStatusCtrl").value
+    };
+
+    try {
+      const grupos = await apiCall("getOrdersGroupedByNsa", { filters: filters });
+      const tbody = document.getElementById("tableControleBody");
+      tbody.innerHTML = "";
+      cacheGruposNsa = {};
+      
+      if (!grupos || grupos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhuma ordem pendente de ação encontrada.</td></tr>`;
+        return;
+      }
+
+      const now = Date.now();
+      let rowsHtml = "";
+
+      grupos.forEach(g => {
+        cacheGruposNsa[g.nsa] = g;
+
+        let somaRealKg = 0;
+        g.itens.forEach(item => {
+          let numStr = String(item.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
+          somaRealKg += (parseFloat(numStr) || 0);
+        });
+
+        const totalKgFmt = somaRealKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const marcoInicial = g.dtImpMs || g.dtImportMs || now;
+        const isFinalizado = g.status === 'FINALIZADO';
+        const marcoFinal = g.dtFimMs || now;
+
+        rowsHtml += `
+          <tr>
+            <td>
+              <strong class="text-primary fs-6">${g.nsa}</strong>
+              <small class="d-block text-muted">${g.documento}</small>
+            </td>
+            <td><strong>${g.dataPlanejamento}</strong></td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                <i class="bi bi-box-seam me-1"></i> ${g.itens.length} materiais
+              </span>
+            </td>
+            <td><strong>${totalKgFmt} KG</strong></td>
+            <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
+            <td>
+              <span class="badge-sla sla-ok live-timer-row" 
+                    data-start="${marcoInicial}" 
+                    data-finalizado="${isFinalizado}" 
+                    data-fim="${marcoFinal}">
+                <i class="bi bi-stopwatch me-1"></i> 0d 00:00:00
+              </span>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="abrirDetalhesItens('${g.nsa}')" title="Ver materiais, copiar lotes e códigos para o TOTVS">
+                  <i class="bi bi-eye"></i> Ver Itens / Copiar TOTVS
+                </button>
+
+                <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Baixar Ordem Oficial em PDF (2 Vias)">
+                  <i class="bi bi-file-earmark-pdf"></i> Imprimir Ordem (2 Vias)
+                </button>
+
+                ${g.status === 'IMPRESSO' ? `
+                  <button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalEntregaOperador('${g.nsa}')" title="Registrar nome do operador que recebeu as vias">
+                    <i class="bi bi-person-check"></i> Entregue
+                  </button>
+                ` : ''}
+
+                ${g.status === 'ENTREGUE AO OPERADOR' ? `
+                  <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalFinalizarRecebimento('${g.nsa}')" title="Registrar recebimento na fábrica e arquivar">
+                    <i class="bi bi-check2-all"></i> Finalizar
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = rowsHtml;
+      updateAllLiveClocks();
+      if (document.getElementById("sec-monitorWms").classList.contains("d-none") === false) {
+        renderizarTabelaConfrontoWms();
+      }
+    } catch(e) {}
+  }
+
+  function abrirDetalhesItens(nsa) {
+    const g = cacheGruposNsa[nsa];
+    if (!g) return;
+
+    document.getElementById("detalhesModalTitle").innerText = `Materiais do Pedido WMS: ${nsa} (${g.documento})`;
+    const tbody = document.getElementById("detalhesModalBody");
+    tbody.innerHTML = "";
+
+    let itensHtml = "";
+    g.itens.forEach((it) => {
+      itensHtml += `
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <strong class="text-dark">${it.codigo}</strong>
+              <button class="btn-copy-chip" onclick="copiarTexto('${it.codigo}', this)" title="Copiar Código do Produto">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+            <small class="text-muted d-block" style="font-size: 0.8rem;">${it.descricao}</small>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <span class="badge bg-light text-dark border px-2 py-1 fs-6">${it.lote || '-'}</span>
+              ${it.lote ? `
+                <button class="btn-copy-chip" onclick="copiarTexto('${it.lote}', this)" title="Copiar Lote">
+                  <i class="bi bi-clipboard"></i> Copiar
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <span>${it.validade || '-'}</span>
+              ${it.validade ? `
+                <button class="btn-copy-chip" onclick="copiarTexto('${it.validade}', this)" title="Copiar Validade">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              ` : ''}
+            </div>
+          </td>
+          <td><small class="fw-bold">${it.origem} &rarr; ${it.destino}</small></td>
+          <td>
+            <div class="d-flex align-items-center gap-1">
+              <strong class="text-primary">${it.quantidade} KG</strong>
+              <button class="btn-copy-chip" onclick="copiarTexto('${it.quantidade}', this)" title="Copiar Quantidade">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn btn-sm btn-outline-dark py-1 px-2" style="font-size: 0.75rem;" onclick="copiarLinhaTotvs('${it.codigo}', '${it.lote}', '${it.validade}', '${it.quantidade}', this)" title="Copiar Linha completa tabulada para colar no TOTVS">
+              <i class="bi bi-copy"></i> Copiar Linha
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = itensHtml;
+    new bootstrap.Modal(document.getElementById("sysDetalhesModal")).show();
+  }
+
+  function copiarTexto(texto, btnElement) {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto).then(() => {
+      const originalHtml = btnElement.innerHTML;
+      btnElement.classList.add("copied");
+      btnElement.innerHTML = `<i class="bi bi-check2"></i>`;
+      setTimeout(() => {
+        btnElement.classList.remove("copied");
+        btnElement.innerHTML = originalHtml;
+      }, 1500);
+    });
+  }
+
+  function copiarLinhaTotvs(codigo, lote, validade, quantidade, btnElement) {
+    const textoTabulado = `${codigo}\t${lote}\t${validade}\t${quantidade}`;
+    navigator.clipboard.writeText(textoTabulado).then(() => {
+      const originalHtml = btnElement.innerHTML;
+      btnElement.className = "btn btn-sm btn-success py-1 px-2";
+      btnElement.innerHTML = `<i class="bi bi-check2"></i> Copiado!`;
+      setTimeout(() => {
+        btnElement.className = "btn btn-sm btn-outline-dark py-1 px-2";
+        btnElement.innerHTML = originalHtml;
+      }, 1800);
+    });
+  }
+
+  function abrirModalEntregaOperador(nsa) {
+    document.getElementById("entregaNsaInput").value = nsa;
+    document.getElementById("entregaOperadorNome").value = "";
+    new bootstrap.Modal(document.getElementById("sysEntregaModal")).show();
+  }
+
+  async function confirmarEntregaOperadorAcao() {
+    const nsa = document.getElementById("entregaNsaInput").value;
+    const nome = document.getElementById("entregaOperadorNome").value;
+
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do operador separador que retirou as vias.", "warning");
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById("sysEntregaModal")).hide();
+
+    try {
+      const res = await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
+      if (res && res.success) {
+        loadControleOrders();
+        showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao registrar entrega.", "danger");
+      }
+    } catch(e) {
+      showSysAlert("Erro", e.message, "danger");
+    }
+  }
+
+  function abrirModalFinalizarRecebimento(nsa) {
+    document.getElementById("finalizarNsaInput").value = nsa;
+    document.getElementById("finalizarRecebedorNome").value = "";
+    document.getElementById("finalizarObsInput").value = "";
+    new bootstrap.Modal(document.getElementById("sysFinalizarModal")).show();
+  }
+
+  async function confirmarFinalizacaoAcao() {
+    const nsa = document.getElementById("finalizarNsaInput").value;
+    const nome = document.getElementById("finalizarRecebedorNome").value;
+    const obs = document.getElementById("finalizarObsInput").value;
+
+    if (!nome || nome.trim().length < 3) {
+      showSysAlert("Validação Obrigatória", "Informe o nome do responsável pelo recebimento na fábrica.", "warning");
+      return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById("sysFinalizarModal")).hide();
+
+    try {
+      const res = await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
+      if (res && res.success) {
+        loadControleOrders();
+        loadDashboard();
+        showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
+      } else {
+        showSysAlert("Erro", res ? res.error : "Falha ao finalizar ordem.", "danger");
+      }
+    } catch(e) {
+      showSysAlert("Erro", e.message, "danger");
+    }
+  }
+
+  async function acionarImpressaoNsa(nsa, isReimpressao, motivo = "") {
+    try {
+      const res = await apiCall("processarImpressaoOrdemNsa", { numeroNsa: nsa, isReimpressao: isReimpressao, motivo: motivo });
+      if (res && res.requiresConfirmation) {
+        reimpCurrentNsa = nsa;
+        document.getElementById("sysReimpDesc").innerText = res.message;
+        document.getElementById("sysReimpMotivo").value = "";
+        new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
+      } else if (res && res.success) {
+        gerarEBaixarPdfOficial(res.ordem);
+        loadControleOrders();
+      } else {
+        showSysAlert("Erro de Impressão", res ? res.error : "Falha na impressão.", "danger");
+      }
+    } catch(e) {}
+  }
+
+  function confirmarReimpressaoAcao() {
+    const motivo = document.getElementById("sysReimpMotivo").value;
+    if (!motivo || motivo.trim().length < 5) {
+      showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório (mínimo de 5 caracteres).", "warning");
+      return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById("sysReimpressaoModal")).hide();
+    acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
+  }
+
+  function gerarEBaixarPdfOficial(ordem) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    const nomeUsuarioImpressao = currentUserSession.nome;
+
+    let somaRealOrdem = 0;
+    const tableBody = ordem.itens.map(it => {
+      let numStr = String(it.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
+      somaRealOrdem += (parseFloat(numStr) || 0);
+
+      return [
+        `${it.codigo}  ${it.descricao}`,
+        it.localizacao || "",
+        it.lote || "",
+        it.validade || "",
+        it.origem || "",
+        it.destino || "",
+        it.quantidade || "0",
+        it.pedidoWms || ""
+      ];
+    });
+
+    const totalFmt = somaRealOrdem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    tableBody.push([
+      { content: "Total Geral:", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
+      { content: totalFmt, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
+      { content: "", styles: { fillColor: [240, 240, 240] } }
+    ]);
+
+    for (let via = 1; via <= 2; via++) {
+      if (via === 2) doc.addPage("a4", "landscape");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("REGISTRO DE ABASTECIMENTO DE FABRICA", 12, 14);
+
+      doc.setFontSize(14);
+      doc.text(`Nr. ${ordem.nsa}`, 285, 14, { align: "right" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Data: ${ordem.data}  |  Sistema: ${nomeUsuarioImpressao}`, 12, 19);
+      doc.text(`Documento: ${ordem.documento}  |  RAF - V1.0`, 285, 19, { align: "right" });
+
+      doc.setFont("helvetica", "bold");
+      doc.text(`VIA ${via} DE 2`, 285, 23.5, { align: "right" });
+
+      doc.setLineWidth(0.5);
+      doc.line(12, 25, 285, 25);
+
+      doc.setFillColor(34, 34, 34);
+      doc.rect(12, 27, 273, 6, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text(`Estabelecimento:    ${ordem.estabelecimento}`, 15, 31.2);
+
+      doc.setTextColor(0, 0, 0);
+
+      doc.autoTable({
+        startY: 35,
+        margin: { left: 12, right: 12 },
+        head: [["Produto", "Localizacao", "Lote", "Validade", "Origem", "Destino", "Quantidade", "Pedido WMS"]],
+        body: tableBody,
+        theme: "grid",
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 1.6,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.2,
+          textColor: [0, 0, 0]
+        },
+        headStyles: {
+          fillColor: [34, 34, 34],
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          halign: "center"
+        },
+        columnStyles: {
+          0: { cellWidth: 90, halign: "left" },
+          1: { cellWidth: 24, halign: "center" },
+          2: { cellWidth: 32, halign: "center", fontStyle: "bold" },
+          3: { cellWidth: 26, halign: "center" },
+          4: { cellWidth: 20, halign: "center" },
+          5: { cellWidth: 20, halign: "center" },
+          6: { cellWidth: 31, halign: "right", fontStyle: "bold" },
+          7: { cellWidth: 30, halign: "center" }
+        }
+      });
+
+      let finalY = doc.lastAutoTable.finalY + 4;
+      if (finalY > 170) finalY = 170;
+
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
+      doc.text("Observação:", 12, finalY);
+      doc.rect(12, finalY + 1.5, 273, 10);
+
+      const signY = finalY + 22;
+      doc.line(30, signY, 115, signY);
+      doc.line(180, signY, 265, signY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.text("Responsável do Envio", 72.5, signY + 4, { align: "center" });
+      doc.text("Responsável do Recebimento", 222.5, signY + 4, { align: "center" });
+    }
+
+    const nomeArquivo = `Ordem_${ordem.nsa}.pdf`;
+    doc.save(nomeArquivo);
+
+    showSysAlert(
+      "Ordem Gerada com Sucesso!",
+      `O arquivo oficial <strong>${nomeArquivo}</strong> foi gerado por <strong>${nomeUsuarioImpressao}</strong> e baixado na máquina.<br>2 vias prontas para impressão limpa.`,
+      "success"
+    );
+  }
+
+  // =========================================================================
+  // AUDITORIA E HISTÓRICO
+  // =========================================================================
+  async function loadAuditPage(page) {
+    currentAuditPage = page;
+    const filters = {
+      page: page,
+      pageSize: 15,
+      dataInicio: document.getElementById("auditDataInicio").value,
+      dataFim: document.getElementById("auditDataFim").value,
+      nsa: document.getElementById("auditNsaBusca").value
+    };
+
+    try {
+      const res = await apiCall("getAuditHistory", { filters: filters });
+      const tbody = document.getElementById("tableHistoryBody");
+      tbody.innerHTML = "";
+      
+      if (!res.items || res.items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhum registro de auditoria encontrado para o período.</td></tr>`;
+        document.getElementById("auditTotalInfo").innerText = "0 registros encontrados";
+        document.getElementById("auditPaginationUl").innerHTML = "";
+        return;
+      }
+
+      let auditHtml = "";
+      res.items.forEach(h => {
+        auditHtml += `
+          <tr>
+            <td><small>${h.dataHora}</small></td>
+            <td><strong class="text-primary">${h.nsa}</strong></td>
+            <td><span class="badge bg-secondary">${h.acao}</span></td>
+            <td>${h.statusAnterior} &rarr; <strong>${h.statusNovo}</strong></td>
+            <td><small>${h.usuario}</small></td>
+            <td><span class="badge bg-dark">${h.area}</span></td>
+            <td><small>${h.observacao}</small></td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = auditHtml;
+
+      const inicioFmt = ((res.page - 1) * res.pageSize) + 1;
+      const fimFmt = Math.min(res.total, res.page * res.pageSize);
+      document.getElementById("auditTotalInfo").innerText = `Exibindo ${inicioFmt}–${fimFmt} de ${res.total} registros (Página ${res.page} de ${res.totalPages})`;
+
+      renderPaginationButtons(res.page, res.totalPages);
+    } catch(e) {}
+  }
+
+  function renderPaginationButtons(currentPage, totalPages) {
+    const ul = document.getElementById("auditPaginationUl");
+    ul.innerHTML = "";
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage - 1})">&laquo;</a>
+      </li>
+    `;
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      ul.innerHTML += `
+        <li class="page-item ${p === currentPage ? 'active' : ''}">
+          <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${p})">${p}</a>
+        </li>
+      `;
+    }
+
+    ul.innerHTML += `
+      <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="javascript:void(0)" onclick="loadAuditPage(${currentPage + 1})">&raquo;</a>
+      </li>
+    `;
+  }
+
+  // =========================================================================
   // PARSER LOCAL DO PDF DE PLANEJAMENTO
+  // =========================================================================
   function parseAbastecimentoLocal(rawText, fileName) {
     const result = {
       arquivo: fileName,
@@ -1677,9 +2137,10 @@
     const tbody = document.getElementById("previewTableBody");
     tbody.innerHTML = "";
 
+    let previewHtml = "";
     data.itens.forEach((item, idx) => {
       const isPendente = item.statusLeitura !== 'OK';
-      tbody.innerHTML += `
+      previewHtml += `
         <tr class="${isPendente ? 'table-warning' : ''}">
           <td><span class="badge bg-secondary">${item.nsa}</span></td>
           <td><strong>${item.codigoProduto}</strong></td>
@@ -1709,6 +2170,7 @@
         </tr>
       `;
     });
+    tbody.innerHTML = previewHtml;
   }
 
   function updatePreviewItem(index, campo, valor) {
@@ -1791,331 +2253,6 @@
     document.getElementById("pdfFileInput").value = "";
     cachedPreviewData = null;
   }
-
-  async function loadControleOrders() {
-    const filters = {
-      nsa: document.getElementById("filtroNsaCtrl").value,
-      status: document.getElementById("filtroStatusCtrl").value
-    };
-
-    try {
-      const grupos = await apiCall("getOrdersGroupedByNsa", { filters: filters });
-      const tbody = document.getElementById("tableControleBody");
-      tbody.innerHTML = "";
-      cacheGruposNsa = {};
-      
-      if (!grupos || grupos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Nenhuma ordem pendente de ação encontrada.</td></tr>`;
-        return;
-      }
-
-      const now = Date.now();
-
-      grupos.forEach(g => {
-        cacheGruposNsa[g.nsa] = g;
-
-        let somaRealKg = 0;
-        g.itens.forEach(item => {
-          let numStr = String(item.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
-          somaRealKg += (parseFloat(numStr) || 0);
-        });
-
-        const totalKgFmt = somaRealKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-        const marcoInicial = g.dtImpMs || g.dtImportMs || now;
-        const isFinalizado = g.status === 'FINALIZADO';
-        const marcoFinal = g.dtFimMs || now;
-
-        tbody.innerHTML += `
-          <tr>
-            <td>
-              <strong class="text-primary fs-6">${g.nsa}</strong>
-              <small class="d-block text-muted">${g.documento}</small>
-            </td>
-            <td><strong>${g.dataPlanejamento}</strong></td>
-            <td>
-              <span class="badge bg-light text-dark border">
-                <i class="bi bi-box-seam me-1"></i> ${g.itens.length} materiais
-              </span>
-            </td>
-            <td><strong>${totalKgFmt} KG</strong></td>
-            <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
-            <td>
-              <span class="badge-sla sla-ok live-timer-row" 
-                    data-start="${marcoInicial}" 
-                    data-finalizado="${isFinalizado}" 
-                    data-fim="${marcoFinal}">
-                <i class="bi bi-stopwatch me-1"></i> 0d 00:00:00
-              </span>
-            </td>
-            <td>
-              <div class="d-flex flex-wrap gap-1">
-                <button class="btn btn-sm btn-outline-primary fw-bold" onclick="abrirDetalhesItens('${g.nsa}')" title="Ver materiais, copiar lotes e códigos para o TOTVS">
-                  <i class="bi bi-eye"></i> Ver Itens / Copiar TOTVS
-                </button>
-
-                <button class="btn btn-sm btn-dark" onclick="acionarImpressaoNsa('${g.nsa}', false)" title="Baixar Ordem Oficial em PDF (2 Vias)">
-                  <i class="bi bi-file-earmark-pdf"></i> Imprimir Ordem (2 Vias)
-                </button>
-
-                ${g.status === 'IMPRESSO' ? `
-                  <button class="btn btn-sm btn-warning fw-bold" onclick="abrirModalEntregaOperador('${g.nsa}')" title="Registrar nome do operador que recebeu as vias">
-                    <i class="bi bi-person-check"></i> Entregue
-                  </button>
-                ` : ''}
-
-                ${g.status === 'ENTREGUE AO OPERADOR' ? `
-                  <button class="btn btn-sm btn-success fw-bold" onclick="abrirModalFinalizarRecebimento('${g.nsa}')" title="Registrar recebimento na fábrica e arquivar">
-                    <i class="bi bi-check2-all"></i> Finalizar
-                  </button>
-                ` : ''}
-              </div>
-            </td>
-          </tr>
-        `;
-      });
-
-      updateAllLiveClocks();
-      if (document.getElementById("sec-monitorWms").classList.contains("d-none") === false) {
-        renderizarTabelaConfrontoWms();
-      }
-    } catch(e) {}
-  }
-
-  function abrirDetalhesItens(nsa) {
-    const g = cacheGruposNsa[nsa];
-    if (!g) return;
-
-    document.getElementById("detalhesModalTitle").innerText = `Materiais do Pedido WMS: ${nsa} (${g.documento})`;
-    const tbody = document.getElementById("detalhesModalBody");
-    tbody.innerHTML = "";
-
-    g.itens.forEach((it) => {
-      tbody.innerHTML += `
-        <tr>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <strong class="text-dark">${it.codigo}</strong>
-              <button class="btn-copy-chip" onclick="copiarTexto('${it.codigo}', this)" title="Copiar Código do Produto">
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
-            <small class="text-muted d-block" style="font-size: 0.8rem;">${it.descricao}</small>
-          </td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <span class="badge bg-light text-dark border px-2 py-1 fs-6">${it.lote || '-'}</span>
-              ${it.lote ? `
-                <button class="btn-copy-chip" onclick="copiarTexto('${it.lote}', this)" title="Copiar Lote">
-                  <i class="bi bi-clipboard"></i> Copiar
-                </button>
-              ` : ''}
-            </div>
-          </td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <span>${it.validade || '-'}</span>
-              ${it.validade ? `
-                <button class="btn-copy-chip" onclick="copiarTexto('${it.validade}', this)" title="Copiar Validade">
-                  <i class="bi bi-clipboard"></i>
-                </button>
-              ` : ''}
-            </div>
-          </td>
-          <td><small class="fw-bold">${it.origem} &rarr; ${it.destino}</small></td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
-              <strong class="text-primary">${it.quantidade} KG</strong>
-              <button class="btn-copy-chip" onclick="copiarTexto('${it.quantidade}', this)" title="Copiar Quantidade">
-                <i class="bi bi-clipboard"></i>
-              </button>
-            </div>
-          </td>
-          <td style="text-align: center;">
-            <button class="btn btn-sm btn-outline-dark py-1 px-2" style="font-size: 0.75rem;" onclick="copiarLinhaTotvs('${it.codigo}', '${it.lote}', '${it.validade}', '${it.quantidade}', this)" title="Copiar Linha completa tabulada para colar no TOTVS">
-              <i class="bi bi-copy"></i> Copiar Linha
-            </button>
-          </td>
-        </tr>
-      `;
-    });
-
-    new bootstrap.Modal(document.getElementById("sysDetalhesModal")).show();
-  }
-
-  function copiarTexto(texto, btnElement) {
-    if (!texto) return;
-    navigator.clipboard.writeText(texto).then(() => {
-      const originalHtml = btnElement.innerHTML;
-      btnElement.classList.add("copied");
-      btnElement.innerHTML = `<i class="bi bi-check2"></i>`;
-      setTimeout(() => {
-        btnElement.classList.remove("copied");
-        btnElement.innerHTML = originalHtml;
-      }, 1500);
-    });
-  }
-
-  function copiarLinhaTotvs(codigo, lote, validade, quantidade, btnElement) {
-    const textoTabulado = `${codigo}\t${lote}\t${validade}\t${quantidade}`;
-    navigator.clipboard.writeText(textoTabulado).then(() => {
-      const originalHtml = btnElement.innerHTML;
-      btnElement.className = "btn btn-sm btn-success py-1 px-2";
-      btnElement.innerHTML = `<i class="bi bi-check2"></i> Copiado!`;
-      setTimeout(() => {
-        btnElement.className = "btn btn-sm btn-outline-dark py-1 px-2";
-        btnElement.innerHTML = originalHtml;
-      }, 1800);
-    });
-  }
-
-  function abrirModalEntregaOperador(nsa) {
-    document.getElementById("entregaNsaInput").value = nsa;
-    document.getElementById("entregaOperadorNome").value = "";
-    new bootstrap.Modal(document.getElementById("sysEntregaModal")).show();
-  }
-
-  async function confirmarEntregaOperadorAcao() {
-    const nsa = document.getElementById("entregaNsaInput").value;
-    const nome = document.getElementById("entregaOperadorNome").value;
-
-    if (!nome || nome.trim().length < 3) {
-      showSysAlert("Validação Obrigatória", "Informe o nome do operador separador que retirou as vias.", "warning");
-      return;
-    }
-
-    bootstrap.Modal.getInstance(document.getElementById("sysEntregaModal")).hide();
-
-    try {
-      const res = await apiCall("registrarEntregaOperador", { numeroNsa: nsa, nomeOperador: nome });
-      if (res && res.success) {
-        loadControleOrders();
-        showSysAlert("Entrega Registrada", `Ordem ${nsa} entregue ao operador: <strong>${nome.toUpperCase().trim()}</strong>.`, "success");
-      } else {
-        showSysAlert("Erro", res ? res.error : "Falha ao registrar entrega.", "danger");
-      }
-    } catch(e) {
-      showSysAlert("Erro", e.message, "danger");
-    }
-  }
-
-  function abrirModalFinalizarRecebimento(nsa) {
-    document.getElementById("finalizarNsaInput").value = nsa;
-    document.getElementById("finalizarRecebedorNome").value = "";
-    document.getElementById("finalizarObsInput").value = "";
-    new bootstrap.Modal(document.getElementById("sysFinalizarModal")).show();
-  }
-
-  async function confirmarFinalizacaoAcao() {
-    const nsa = document.getElementById("finalizarNsaInput").value;
-    const nome = document.getElementById("finalizarRecebedorNome").value;
-    const obs = document.getElementById("finalizarObsInput").value;
-
-    if (!nome || nome.trim().length < 3) {
-      showSysAlert("Validação Obrigatória", "Informe o nome do responsável pelo recebimento na fábrica.", "warning");
-      return;
-    }
-
-    bootstrap.Modal.getInstance(document.getElementById("sysFinalizarModal")).hide();
-
-    try {
-      const res = await apiCall("registrarFinalizacaoRecebimento", { numeroNsa: nsa, nomeRecebedor: nome, obs: obs });
-      if (res && res.success) {
-        loadControleOrders();
-        loadDashboard();
-        showSysAlert("Ordem Finalizada e Arquivada!", `Ordem ${nsa} concluída por <strong>${nome.toUpperCase().trim()}</strong> e arquivada com sucesso.`, "success");
-      } else {
-        showSysAlert("Erro", res ? res.error : "Falha ao finalizar ordem.", "danger");
-      }
-    } catch(e) {
-      showSysAlert("Erro", e.message, "danger");
-    }
-  }
-
-  async function acionarImpressaoNsa(nsa, isReimpressao, motivo = "") {
-    try {
-      const res = await apiCall("processarImpressaoOrdemNsa", { numeroNsa: nsa, isReimpressao: isReimpressao, motivo: motivo });
-      if (res && res.requiresConfirmation) {
-        reimpCurrentNsa = nsa;
-        document.getElementById("sysReimpDesc").innerText = res.message;
-        document.getElementById("sysReimpMotivo").value = "";
-        new bootstrap.Modal(document.getElementById("sysReimpressaoModal")).show();
-      } else if (res && res.success) {
-        gerarEBaixarPdfOficial(res.ordem);
-        loadControleOrders();
-      } else {
-        showSysAlert("Erro de Impressão", res ? res.error : "Falha na impressão.", "danger");
-      }
-    } catch(e) {}
-  }
-
-  function confirmarReimpressaoAcao() {
-    const motivo = document.getElementById("sysReimpMotivo").value;
-    if (!motivo || motivo.trim().length < 5) {
-      showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório (mínimo de 5 caracteres).", "warning");
-      return;
-    }
-    bootstrap.Modal.getInstance(document.getElementById("sysReimpressaoModal")).hide();
-    acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
-  }
-
-  function gerarEBaixarPdfOficial(ordem) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-
-    const nomeUsuarioImpressao = currentUserSession.nome;
-
-    let somaRealOrdem = 0;
-    const tableBody = ordem.itens.map(it => {
-      let numStr = String(it.quantidade || "0").trim().replace(/\./g, "").replace(",", ".");
-      somaRealOrdem += (parseFloat(numStr) || 0);
-
-      return [
-        `${it.codigo}  ${it.descricao}`,
-        it.localizacao || "",
-        it.lote || "",
-        it.validade || "",
-        it.origem || "",
-        it.destino || "",
-        it.quantidade || "0",
-        it.pedidoWms || ""
-      ];
-    });
-
-    const totalFmt = somaRealOrdem.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    tableBody.push([
-      { content: "Total Geral:", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
-      { content: totalFmt, styles: { halign: "right", fontStyle: "bold", fillColor: [240, 240, 240] } },
-      { content: "", styles: { fillColor: [240, 240, 240] } }
-    ]);
-
-    for (let via = 1; via <= 2; via++) {
-      if (via === 2) doc.addPage("a4", "landscape");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("REGISTRO DE ABASTECIMENTO DE FABRICA", 12, 14);
-
-      doc.setFontSize(14);
-      doc.text(`Nr. ${ordem.nsa}`, 285, 14, { align: "right" });
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(`Data: ${ordem.data}  |  Sistema: ${nomeUsuarioImpressao}`, 12, 19);
-      doc.text(`Documento: ${ordem.documento}  |  RAF - V1.0`, 285, 19, { align: "right" });
-
-      doc.setFont("helvetica", "bold");
-      doc.text(`VIA ${via} DE 2`, 285, 23.5, { align: "right" });
-
-      doc.setLineWidth(0.5);
-      doc.line(12, 25, 285, 25);
-
-      doc.setFillColor(34, 34, 34);
-      doc.rect(12, 27, 273, 6, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.text(`Estabelecimento:    ${ordem.estabelecimento}`, 15, 31.2);
-
-      doc.
+</script>
+</body>
+</html>
