@@ -219,13 +219,13 @@
 
     /* BOTÃO PERSONALIZADO TEAMS */
     .btn-teams {
-      background-color: #5059c9;
+      background-color: #464eb8;
       color: #fff;
-      border: 1px solid #434ba8;
+      border: 1px solid #3b429f;
       font-weight: 600;
     }
     .btn-teams:hover {
-      background-color: #4048b0;
+      background-color: #3b429f;
       color: #fff;
     }
   </style>
@@ -274,7 +274,7 @@
       <div id="sec-dashboard" class="content-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold m-0">Visão Geral da Torre de Controle</h4>
-          <button class="btn btn-sm btn-outline-secondary" onclick="loadDashboard()">
+          <button id="btnAtualizarDashboard" class="btn btn-sm btn-outline-secondary" onclick="recarregarPainelCompleto()">
             <i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores
           </button>
         </div>
@@ -604,7 +604,7 @@
   </div>
 </div>
 
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (COM TEMPO TOTAL DE SEPARAÇÃO E COBRANÇA TEAMS) -->
+<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM (COM TEMPO TOTAL DE SEPARAÇÃO E COBRANÇA TEAMS LIMPA) -->
 <div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
@@ -618,9 +618,7 @@
       <div class="modal-body p-3">
         
         <!-- PAINEL SUPERIOR DE INDICADORES DE TEMPO E SEPARAÇÃO -->
-        <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics">
-          <!-- Renderizado dinamicamente via JS -->
-        </div>
+        <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
 
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle border">
@@ -810,7 +808,6 @@
     msImpressos: 0
   };
 
-  // FORMATAÇÃO DO RELÓGIO COM SEGUNDOS (DIA + HH:MM:SS)
   function formatarDuracaoMs(ms) {
     if (!ms || ms <= 0) return "0d 00:00:00";
     const totalSegundos = Math.floor(ms / 1000);
@@ -822,7 +819,6 @@
     return `${dias}d ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
 
-  // ATUALIZAÇÃO AO VIVO SEGUNDO A SEGUNDO DOS RELÓGIOS
   function updateAllLiveClocks() {
     const now = Date.now();
     const limite24h = 24 * 3600 * 1000;
@@ -848,7 +844,6 @@
     renderCardBadge("cron-pendente", timerSlaData.msPendente);
     renderCardBadge("cron-impressos", timerSlaData.msImpressos);
 
-    // Atualiza relógios das linhas em ambas as tabelas
     document.querySelectorAll(".live-timer-row").forEach(el => {
       const startMs = parseInt(el.getAttribute("data-start"), 10);
       const isFinalizado = el.getAttribute("data-finalizado") === "true";
@@ -887,10 +882,21 @@
     new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
   }
 
+  // INICIALIZAÇÃO BLINDADA
   document.addEventListener("DOMContentLoaded", function() {
     atualizarExibicaoUsuario();
-    loadDashboard();
+    recarregarPainelCompleto();
   });
+
+  async function recarregarPainelCompleto() {
+    const btn = document.getElementById("btnAtualizarDashboard");
+    if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Atualizando...`;
+
+    await loadDashboard();
+    await loadControleOrders();
+
+    if (btn) btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores`;
+  }
 
   function showSection(sectionId, element) {
     document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
@@ -899,7 +905,7 @@
     document.getElementById("sec-" + sectionId).classList.remove("d-none");
     if (element) element.classList.add("active");
 
-    if (sectionId === "dashboard") loadDashboard();
+    if (sectionId === "dashboard") recarregarPainelCompleto();
     if (sectionId === "controle") loadControleOrders();
     if (sectionId === "monitorWms") {
       if (wmsPedidosArray.length === 0) loadControleOrders();
@@ -1012,7 +1018,6 @@
           wmsDataAgrupada[pedOrigem].qtdConferida += qtdConf;
           if (separador) wmsDataAgrupada[pedOrigem].separadores.add(separador);
 
-          // Rastreia primeiro e último timestamp de separação
           if (dtSep && dtSep !== "-") {
             const parts = dtSep.split(/[\/\s:]/);
             if (parts.length >= 5) {
@@ -1188,7 +1193,7 @@
   }
 
   // =========================================================================
-  // DETALHES DE CONFRONTO COM TEMPO DE SEPARAÇÃO E MENSAGEM TEAMS
+  // DETALHES DE CONFRONTO COM TEMPO DE SEPARAÇÃO E FORMATAÇÃO LIMPA P/ TEAMS
   // =========================================================================
   function abrirModalConfrontoDetalhe(nsa) {
     const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
@@ -1200,7 +1205,6 @@
 
     const itens = pedidoObj.wmsInfo ? pedidoObj.wmsInfo.itens : [];
 
-    // 1. Cálculo de Tempos do Processo de Separação
     let tempoSeparacaoTexto = "Não iniciada";
     let primeiroBipFormatado = "-";
     let ultimoBipFormatado = "-";
@@ -1209,13 +1213,11 @@
       primeiroBipFormatado = new Date(pedidoObj.wmsInfo.primeiroBip).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       ultimoBipFormatado = new Date(pedidoObj.wmsInfo.ultimoBip).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-      // Se já está 100%, o tempo de separação é fechado; se estiver em andamento, conta até agora
       const fimMs = pedidoObj.pct === 100 ? pedidoObj.wmsInfo.ultimoBip : Date.now();
       const duracaoSepMs = Math.max(0, fimMs - pedidoObj.wmsInfo.primeiroBip);
       tempoSeparacaoTexto = formatarDuracaoMs(duracaoSepMs);
     }
 
-    // 2. Renderização do Painel de Métricas Superior
     const metricsContainer = document.getElementById("wmsDetailHeaderMetrics");
     metricsContainer.innerHTML = `
       <div class="col-md-3">
@@ -1238,13 +1240,12 @@
       </div>
       <div class="col-md-3">
         <div class="card p-2 border-0 bg-light shadow-sm text-center border-start border-primary border-3">
-          <small class="text-secondary fw-bold" style="font-size: 0.72rem;">TEMPO TOTAL DE SEPARAÇÃO</small>
+          <small class="text-secondary fw-bold" style="font-size: 0.72rem;">TEMPO DE SEPARAÇÃO</small>
           <strong class="fs-6 text-primary">${tempoSeparacaoTexto}</strong>
         </div>
       </div>
     `;
 
-    // 3. Renderização da Tabela de Itens e Coleta de Pendências
     const itensPendentes = [];
 
     if (itens.length === 0) {
@@ -1279,32 +1280,56 @@
       });
     }
 
-    // 4. Construtor Automatizado de Mensagem Profissional para o Microsoft Teams
-    document.getElementById("btnCopiarResumoCobranca").onclick = function() {
+    // Copiador Limpo com ClipboardItem (HTML Puro para o Teams - Zero Asteriscos)
+    document.getElementById("btnCopiarResumoCobranca").onclick = async function() {
       const nowFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      let msg = `📢 **ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA** (${nowFmt})\n\n`;
-      msg += `📌 **Ordem / NSA:** ${pedidoObj.nsa} (${pedidoObj.documento})\n`;
-      msg += `👤 **Separador Responsável:** ${pedidoObj.separador}\n`;
-      msg += `⏱ **Tempo de Separação em Andamento:** ${tempoSeparacaoTexto}\n`;
-      msg += `📊 **Status do Pedido:** ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)\n\n`;
+
+      let htmlMsg = `<p>📢 <b>ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA</b> (${nowFmt})</p>`;
+      htmlMsg += `<p>📌 <b>Ordem / NSA:</b> ${pedidoObj.nsa} (${pedidoObj.documento})<br>`;
+      htmlMsg += `👤 <b>Separador Responsável:</b> ${pedidoObj.separador}<br>`;
+      htmlMsg += `⏱ <b>Tempo de Separação em Andamento:</b> ${tempoSeparacaoTexto}<br>`;
+      htmlMsg += `📊 <b>Status do Pedido:</b> ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)</p>`;
 
       if (itensPendentes.length > 0) {
-        msg += `⚠️ **ITENS PENDENTES DE FINALIZAÇÃO:**\n`;
+        htmlMsg += `<p>⚠️ <b>ITENS PENDENTES DE FINALIZAÇÃO:</b><br>`;
         itensPendentes.forEach(p => {
-          msg += `• **${p.codigo}** | Lote: **${p.lote}** | Endereço: **${p.endereco}** | Falta separar: **${p.pendente.toLocaleString('pt-BR')} KG**\n`;
+          htmlMsg += `&bull; <b>${p.codigo}</b> | Lote: <b>${p.lote}</b> | Endereço: <b>${p.endereco}</b> | Falta separar: <b>${p.pendente.toLocaleString('pt-BR')} KG</b><br>`;
         });
-        msg += `\nFavor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭`;
+        htmlMsg += `</p><p>Favor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭</p>`;
       } else {
-        msg += `✅ **Todos os itens já foram separados com sucesso no WMS!** Aguardando conferência final e expedição.`;
+        htmlMsg += `<p>✅ <b>Todos os itens já foram separados com sucesso no WMS!</b> Aguardando conferência final e expedição.</p>`;
       }
 
-      navigator.clipboard.writeText(msg).then(() => {
-        showSysAlert(
-          "Mensagem Formatada Copiada!",
-          `O relatório completo do pedido <strong>${pedidoObj.nsa}</strong> foi copiado para a área de transferência.<br>Basta colar diretamente no chat do <strong>Microsoft Teams</strong>.`,
-          "success"
-        );
-      });
+      let plainText = `📢 ACOMPANHAMENTO OPERACIONAL - ABASTECIMENTO DE FÁBRICA (${nowFmt})\n\n`;
+      plainText += `📌 Ordem / NSA: ${pedidoObj.nsa} (${pedidoObj.documento})\n`;
+      plainText += `👤 Separador Responsável: ${pedidoObj.separador}\n`;
+      plainText += `⏱ Tempo de Separação em Andamento: ${tempoSeparacaoTexto}\n`;
+      plainText += `📊 Status do Pedido: ${pedidoObj.pct}% Concluído (${pedidoObj.qtdSep.toLocaleString('pt-BR')} / ${pedidoObj.qtdSol.toLocaleString('pt-BR')} KG)\n\n`;
+
+      if (itensPendentes.length > 0) {
+        plainText += `⚠️ ITENS PENDENTES DE FINALIZAÇÃO:\n`;
+        itensPendentes.forEach(p => {
+          plainText += `• ${p.codigo} | Lote: ${p.lote} | Endereço: ${p.endereco} | Falta separar: ${p.pendente.toLocaleString('pt-BR')} KG\n`;
+        });
+        plainText += `\nFavor priorizar a conclusão física deste lote no WMS para liberação à fábrica! 🚜🏭`;
+      } else {
+        plainText += `✅ Todos os itens já foram separados com sucesso no WMS! Aguardando conferência final e expedição.`;
+      }
+
+      try {
+        const blobHtml = new Blob([htmlMsg], { type: "text/html" });
+        const blobText = new Blob([plainText], { type: "text/plain" });
+        const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
+        await navigator.clipboard.write(data);
+      } catch (e) {
+        await navigator.clipboard.writeText(plainText);
+      }
+
+      showSysAlert(
+        "Mensagem Limpa Copiada!",
+        `O relatório do pedido <strong>${pedidoObj.nsa}</strong> foi copiado para a área de transferência sem asteriscos.<br>Cole diretamente no <strong>Microsoft Teams</strong> com <strong>Ctrl + V</strong>.`,
+        "success"
+      );
     };
 
     new bootstrap.Modal(document.getElementById("sysDetalhesWmsModal")).show();
@@ -1930,9 +1955,7 @@
       } else {
         showSysAlert("Erro de Impressão", res ? res.error : "Falha na impressão.", "danger");
       }
-    } catch(e) {
-      showSysAlert("Erro de Impressão", e.message, "danger");
-    }
+    } catch(e) {}
   }
 
   function confirmarReimpressaoAcao() {
