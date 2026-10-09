@@ -121,17 +121,19 @@
       font-size: 0.78rem;
     }
     .badge-sla {
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       font-weight: 700;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 6px;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      letter-spacing: 0.5px;
     }
-    .sla-ok { background-color: #dcfce7; color: #15803d; }
-    .sla-warn { background-color: #fef3c7; color: #b45309; }
-    .sla-danger { background-color: #fee2e2; color: #b91c1c; }
+    .sla-ok { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .sla-warn { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .sla-danger { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
     .status-badge {
       font-size: 0.78rem;
@@ -202,6 +204,18 @@
       border-color: #059669 !important;
       color: #ffffff !important;
     }
+
+    /* BARRA DE PROGRESSO DE SEPARAÇÃO */
+    .progress-bar-wms {
+      height: 7px;
+      border-radius: 4px;
+      background-color: #e2e8f0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
   </style>
 </head>
 <body>
@@ -236,6 +250,8 @@
         <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('import', this)"><i class="bi bi-file-earmark-pdf"></i> Importar PDF</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Ordens)</a></li>
+        <!-- NOVA TELA DE CONFRONTO WMS HORA A HORA -->
+        <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
       </ul>
     </div>
@@ -243,7 +259,7 @@
     <!-- ÁREA DE CONTEÚDO -->
     <div class="col-md-10 main-content">
       
-      <!-- DASHBOARD COM SLA EM DIAS E HORAS -->
+      <!-- DASHBOARD COM RELÓGIOS CORRENDO AO VIVO -->
       <div id="sec-dashboard" class="content-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold m-0">Visão Geral da Torre de Controle</h4>
@@ -260,13 +276,13 @@
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
               
               <div class="sla-footer-card">
-                <span class="text-muted"><i class="bi bi-bullseye"></i> Meta de Lead Time:</span>
+                <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
               </div>
             </div>
           </div>
 
-          <!-- CARD AGUARDANDO IMPRESSÃO -->
+          <!-- CARD AGUARDANDO IMPRESSÃO COM RELÓGIO AO VIVO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
@@ -274,12 +290,12 @@
               
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
-                <span id="cron-pendente" class="badge-sla sla-ok">0d 00h 00m</span>
+                <span id="cron-pendente" class="badge-sla sla-ok">0d 00:00:00</span>
               </div>
             </div>
           </div>
 
-          <!-- CARD IMPRESSOS / COM OPERADOR -->
+          <!-- CARD IMPRESSOS / COM OPERADOR COM RELÓGIO AO VIVO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
@@ -287,12 +303,12 @@
               
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
-                <span id="cron-impressos" class="badge-sla sla-ok">0d 00h 00m</span>
+                <span id="cron-impressos" class="badge-sla sla-ok">0d 00:00:00</span>
               </div>
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS (SEM CRONÔMETRO, COM TAXA DE EFICIÊNCIA) -->
+          <!-- CARD FINALIZADOS COM TAXA DE PERFORMANCE -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
@@ -307,7 +323,7 @@
         </div>
       </div>
 
-      <!-- IMPORTAÇÃO -->
+      <!-- IMPORTAÇÃO DO PDF DE PLANEJAMENTO -->
       <div id="sec-import" class="content-section d-none">
         <h4 class="fw-bold mb-3">Importação do Planejamento de Fábrica</h4>
         <div class="card card-kpi p-4 bg-white mb-4">
@@ -357,7 +373,7 @@
         </div>
       </div>
 
-      <!-- CONTROLE DE PEDIDOS WMS COM TEMPO INDIVIDUAL DE PROCESSO -->
+      <!-- CONTROLE DE PEDIDOS WMS (COM TEMPOS DE SLA) -->
       <div id="sec-controle" class="content-section d-none">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="fw-bold m-0">Ordens de Abastecimento (Por Pedido WMS)</h4>
@@ -394,11 +410,89 @@
                 <th>Qtd Itens</th>
                 <th>Peso Total</th>
                 <th>Status Atual</th>
-                <th style="min-width: 140px;">Tempo de Processo (SLA)</th>
+                <th style="min-width: 170px;">Tempo de Processo (SLA)</th>
                 <th style="min-width: 320px;">Ações da Ordem</th>
               </tr>
             </thead>
             <tbody id="tableControleBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOVA TELA: CONFRONTO WMS E MONITOR DE SEPARAÇÃO (HORA A HORA) -->
+      <div id="sec-monitorWms" class="content-section d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h4 class="fw-bold m-0">Confronto WMS &bull; Monitor de Separação em Tempo Real</h4>
+            <small class="text-secondary">Suba a base temporária extraída do WMS (hora a hora) para confrontar status, separador e cobrar a operação.</small>
+          </div>
+        </div>
+
+        <!-- UPLOAD DA BASE TEMPORÁRIA WMS -->
+        <div class="card card-kpi p-3 bg-white mb-3">
+          <div class="row align-items-center g-2">
+            <div class="col-md-5">
+              <label class="form-label fw-bold small text-dark mb-1">
+                <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> Carregar Relatório de Expedição do WMS (CSV):
+              </label>
+              <input type="file" id="wmsCsvInput" class="form-control form-control-sm" accept=".csv, text/csv">
+            </div>
+            <div class="col-md-3 mt-md-4">
+              <button class="btn btn-warning btn-sm w-100 fw-bold" onclick="processarBaseWmsCsv()">
+                <i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base
+              </button>
+            </div>
+            <div class="col-md-4 mt-md-4 text-md-end">
+              <span id="wmsBaseStatusBadge" class="badge bg-light text-secondary border py-2 px-3">
+                <i class="bi bi-info-circle me-1"></i> Nenhuma base temporária carregada
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTROS DO CONFRONTO -->
+        <div class="bg-white p-3 rounded shadow-sm mb-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-4">
+              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-393, AB-393)..." oninput="filtrarTabelaWms()">
+            </div>
+            <div class="col-md-4">
+              <select id="filtroWmsStatus" class="form-select form-select-sm" onchange="filtrarTabelaWms()">
+                <option value="TODOS" selected>Todos os Estágios de Separação</option>
+                <option value="PENDENTES">Somente Em Aberto / Com Pendência (&lt; 100%)</option>
+                <option value="NAO_INICIADO">Não Iniciados (0% Separado)</option>
+                <option value="EM_ANDAMENTO">Em Separação Parcial</option>
+                <option value="CONCLUIDO">100% Separado / Enviado</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <input type="text" id="filtroWmsSeparador" class="form-control form-control-sm" placeholder="Buscar por Separador..." oninput="filtrarTabelaWms()">
+            </div>
+          </div>
+        </div>
+
+        <!-- TABELA DO CONFRONTO COM CRONÔMETRO -->
+        <div class="table-responsive bg-white rounded shadow-sm p-3">
+          <table class="table table-hover align-middle table-sm">
+            <thead class="table-dark">
+              <tr>
+                <th style="width: 14%;">Pedido / NSA</th>
+                <th style="width: 16%;">Tempo de Processo (SLA)</th>
+                <th style="width: 18%;">Progresso de Separação</th>
+                <th style="width: 13%;">Qtd Solicitada / Sep.</th>
+                <th style="width: 18%;">Separador Responsável</th>
+                <th style="width: 11%;">Status WMS</th>
+                <th style="width: 10%; text-align: center;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tableMonitorWmsBody">
+              <tr>
+                <td colspan="7" class="text-center text-muted p-4">
+                  <i class="bi bi-cloud-arrow-up fs-3 d-block mb-1 text-secondary"></i>
+                  Suba o arquivo CSV extraído do WMS acima para confrontar os pedidos em tempo real.
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -499,6 +593,47 @@
   </div>
 </div>
 
+<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM -->
+<div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom bg-dark text-white">
+        <div>
+          <h5 class="modal-title fw-bold m-0" id="detalhesWmsModalTitle">Conferência dos Itens no WMS</h5>
+          <small class="text-secondary">Visão detalhada de cada material no coletor do separador.</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle border">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Descrição do Produto</th>
+                <th>Lote</th>
+                <th>Endereço</th>
+                <th>Qtd Pedida</th>
+                <th>Qtd Separada</th>
+                <th>Qtd Conferida</th>
+                <th>Separador</th>
+                <th>Data/Hora Separação</th>
+              </tr>
+            </thead>
+            <tbody id="detalhesWmsModalBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer border-top bg-light justify-content-between">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnCopiarResumoCobranca">
+          <i class="bi bi-whatsapp me-1"></i> Copiar Cobrança p/ WhatsApp
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAIS DO SISTEMA -->
 <div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
@@ -588,7 +723,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // URL OFICIAL DO SEU APPS SCRIPT
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
   let currentUserSession = {
@@ -648,54 +782,76 @@
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
-  // ESTADO DO CRONÔMETRO DE PROCESSOS
+  // BASE TEMPORÁRIA DO WMS CARREGADA NA SESSÃO
+  let wmsDataAgrupada = {};
+  let wmsPedidosArray = [];
+
+  // ESTADO DOS CRONÔMETROS DO DASHBOARD
   let timerSlaData = {
     msPendente: 0,
     msImpressos: 0
   };
 
-  // FORMATAÇÃO EM DIAS, HORAS E MINUTOS
+  // FORMATAÇÃO DO RELÓGIO COM SEGUNDOS (DIA + HH:MM:SS)
   function formatarDuracaoMs(ms) {
-    if (!ms || ms <= 0) return "0d 00h 00m";
+    if (!ms || ms <= 0) return "0d 00:00:00";
     const totalSegundos = Math.floor(ms / 1000);
     const dias = Math.floor(totalSegundos / 86400);
     const horas = Math.floor((totalSegundos % 86400) / 3600);
     const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
 
-    return `${dias}d ${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}m`;
+    return `${dias}d ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
   }
 
-  function atualizarBadgesSla() {
+  // ATUALIZAÇÃO AO VIVO SEGUNDO A SEGUNDO DOS RELÓGIOS
+  function updateAllLiveClocks() {
+    const now = Date.now();
     const limite24h = 24 * 3600 * 1000;
     const alerta18h = 18 * 3600 * 1000;
 
-    function renderSlaBadge(elemId, ms) {
+    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 1000;
+    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 1000;
+
+    function renderCardBadge(elemId, ms) {
       const el = document.getElementById(elemId);
       if (!el) return;
-      el.innerText = formatarDuracaoMs(ms);
-
+      el.innerHTML = `<i class="bi bi-clock-history me-1"></i> ${formatarDuracaoMs(ms)}`;
       el.classList.remove("sla-ok", "sla-warn", "sla-danger");
       if (ms > limite24h) {
         el.classList.add("sla-danger");
-        el.title = "SLA Estourado! Mais de 24 horas.";
       } else if (ms > alerta18h) {
         el.classList.add("sla-warn");
-        el.title = "Atenção: Próximo do limite de 24h.";
       } else {
         el.classList.add("sla-ok");
-        el.title = "Dentro do prazo (< 24h).";
       }
     }
 
-    renderSlaBadge("cron-pendente", timerSlaData.msPendente);
-    renderSlaBadge("cron-impressos", timerSlaData.msImpressos);
+    renderCardBadge("cron-pendente", timerSlaData.msPendente);
+    renderCardBadge("cron-impressos", timerSlaData.msImpressos);
+
+    // Atualiza relógios das linhas em ambas as tabelas
+    document.querySelectorAll(".live-timer-row").forEach(el => {
+      const startMs = parseInt(el.getAttribute("data-start"), 10);
+      const isFinalizado = el.getAttribute("data-finalizado") === "true";
+      const finalMs = parseInt(el.getAttribute("data-fim"), 10);
+
+      if (startMs) {
+        const diffMs = isFinalizado && finalMs ? (finalMs - startMs) : Math.max(0, now - startMs);
+        el.innerHTML = `<i class="bi bi-stopwatch me-1"></i> ${formatarDuracaoMs(diffMs)}`;
+        el.classList.remove("sla-ok", "sla-warn", "sla-danger");
+        if (diffMs > limite24h) {
+          el.classList.add("sla-danger");
+        } else if (diffMs > alerta18h) {
+          el.classList.add("sla-warn");
+        } else {
+          el.classList.add("sla-ok");
+        }
+      }
+    });
   }
 
-  setInterval(() => {
-    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 60000;
-    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 60000;
-    atualizarBadgesSla();
-  }, 60000);
+  setInterval(updateAllLiveClocks, 1000);
 
   const SVGS = {
     success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
@@ -727,6 +883,9 @@
 
     if (sectionId === "dashboard") loadDashboard();
     if (sectionId === "controle") loadControleOrders();
+    if (sectionId === "monitorWms") {
+      if (wmsPedidosArray.length === 0) loadControleOrders();
+    }
     if (sectionId === "historico") loadAuditPage(1);
   }
 
@@ -742,7 +901,7 @@
         if (metrics.sla) {
           timerSlaData.msPendente = metrics.sla.maxPendenteMs || 0;
           timerSlaData.msImpressos = metrics.sla.maxImpressosMs || 0;
-          atualizarBadgesSla();
+          updateAllLiveClocks();
 
           const taxaElem = document.getElementById("kpi-taxa-finalizados");
           if (taxaElem) {
@@ -753,7 +912,289 @@
     } catch(e) {}
   }
 
-  // PARSER LOCAL NO NAVEGADOR
+  // =========================================================================
+  // PROCESSAMENTO DA BASE TEMPORÁRIA DO WMS (relatorioMonitorExp.csv)
+  // =========================================================================
+  function parseCSVLine(text) {
+    const p = [',', ';', '\t'];
+    let sep = ';';
+    for (const s of p) {
+      if (text.split(s).length > 10) { sep = s; break; }
+    }
+    return text.split(sep).map(col => col.replace(/^"|"$/g, '').trim());
+  }
+
+  async function processarBaseWmsCsv() {
+    const fileInput = document.getElementById("wmsCsvInput");
+    if (!fileInput.files.length) {
+      showSysAlert("Atenção", "Selecione o arquivo CSV do WMS baixado (ex: relatorioMonitorExp.csv).", "warning");
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      try {
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length < 2) throw new Error("Arquivo vazio ou inválido.");
+
+        const headers = parseCSVLine(lines[0]);
+        const idxPedOrigem = headers.indexOf("Pedido Origem");
+        const idxCodProd = headers.indexOf("Codigo do Produto");
+        const idxLote = headers.indexOf("Lote");
+        const idxQtd = headers.indexOf("Quantidade");
+        const idxQtdSep = headers.indexOf("Qt. Separada");
+        const idxQtdConf = headers.indexOf("Qt. Conferido");
+        const idxSeparador = headers.indexOf("Separador");
+        const idxDtSep = headers.indexOf("Dt. Separacao");
+        const idxSituacao = headers.indexOf("Situacao Pedido");
+        const idxProd = headers.indexOf("Produto");
+        const idxEnd = headers.indexOf("Endereco");
+
+        if (idxPedOrigem === -1 || idxCodProd === -1) {
+          throw new Error("Colunas obrigatórias 'Pedido Origem' ou 'Codigo do Produto' não encontradas.");
+        }
+
+        wmsDataAgrupada = {};
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCSVLine(lines[i]);
+          const pedOrigem = String(cols[idxPedOrigem] || "").trim().toUpperCase();
+          if (!pedOrigem) continue;
+
+          const codProd = String(cols[idxCodProd] || "").trim();
+          const lote = String(cols[idxLote] || "").trim();
+          const qtd = parseFloat(String(cols[idxQtd] || "0").replace(/\./g, '').replace(',', '.')) || 0;
+          const qtdSep = parseFloat(String(cols[idxQtdSep] || "0").replace(/\./g, '').replace(',', '.')) || 0;
+          const qtdConf = parseFloat(String(cols[idxQtdConf] || "0").replace(/\./g, '').replace(',', '.')) || 0;
+          const separador = String(cols[idxSeparador] || "").trim();
+          const dtSep = String(cols[idxDtSep] || "").trim();
+          const situacao = String(cols[idxSituacao] || "").trim();
+          const descProd = String(cols[idxProd] || "").trim();
+          const endereco = String(cols[idxEnd] || "").trim();
+
+          if (!wmsDataAgrupada[pedOrigem]) {
+            wmsDataAgrupada[pedOrigem] = {
+              pedido: pedOrigem,
+              qtdTotal: 0,
+              qtdSeparada: 0,
+              qtdConferida: 0,
+              separadores: new Set(),
+              situacao: situacao,
+              itens: []
+            };
+          }
+
+          wmsDataAgrupada[pedOrigem].qtdTotal += qtd;
+          wmsDataAgrupada[pedOrigem].qtdSeparada += qtdSep;
+          wmsDataAgrupada[pedOrigem].qtdConferida += qtdConf;
+          if (separador) wmsDataAgrupada[pedOrigem].separadores.add(separador);
+
+          wmsDataAgrupada[pedOrigem].itens.push({
+            codigo: codProd,
+            descricao: descProd,
+            lote: lote,
+            endereco: endereco,
+            quantidade: qtd,
+            qtdSeparada: qtdSep,
+            qtdConferida: qtdConf,
+            separador: separador,
+            dtSeparacao: dtSep,
+            situacao: situacao
+          });
+        }
+
+        const totalPedidosWms = Object.keys(wmsDataAgrupada).length;
+        const nowHoraFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        document.getElementById("wmsBaseStatusBadge").className = "badge bg-success py-2 px-3";
+        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base carregada às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
+
+        renderizarTabelaConfrontoWms();
+
+        showSysAlert(
+          "Base WMS Carregada com Sucesso!",
+          `Foram identificados <strong>${totalPedidosWms} pedidos</strong> e <strong>${lines.length - 1} linhas</strong> de separação.<br>O confronto está ativo na tabela abaixo.`,
+          "success"
+        );
+
+      } catch(err) {
+        showSysAlert("Erro no Arquivo", err.message, "danger");
+      }
+    };
+
+    reader.readAsText(file, "ISO-8859-1");
+  }
+
+  function renderizarTabelaConfrontoWms() {
+    const tbody = document.getElementById("tableMonitorWmsBody");
+    tbody.innerHTML = "";
+
+    // Pega as ordens do planejamento já existentes no cache
+    const ordensPlanejadas = Object.values(cacheGruposNsa);
+    const now = Date.now();
+
+    if (ordensPlanejadas.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4">Nenhum pedido de fábrica ativo no sistema.</td></tr>`;
+      return;
+    }
+
+    wmsPedidosArray = ordensPlanejadas.map(ordem => {
+      // Tenta achar correspondência direta no WMS (ex: NSA-393 ou AB-393)
+      const nsaNumero = ordem.nsa.replace(/[^0-9]/g, '');
+      let wmsInfo = wmsDataAgrupada[ordem.nsa] || wmsDataAgrupada[`AB-${nsaNumero}`] || wmsDataAgrupada[`NSA-${nsaNumero}`] || null;
+
+      let pct = 0;
+      let qtdSol = ordem.totalKg;
+      let qtdSep = 0;
+      let separador = "Não Iniciado";
+      let statusWms = "Fila WMS";
+
+      if (wmsInfo) {
+        qtdSep = wmsInfo.qtdSeparada;
+        pct = wmsInfo.qtdTotal > 0 ? Math.min(100, Math.round((wmsInfo.qtdSeparada / wmsInfo.qtdTotal) * 100)) : 0;
+        separador = Array.from(wmsInfo.separadores).join(", ") || "Em fila";
+        statusWms = wmsInfo.situacao || (pct === 100 ? "SEPARADO" : "EM SEPARAÇÃO");
+      }
+
+      const marcoInicial = ordem.dtImpMs || ordem.dtImportMs || now;
+      const isFinalizado = ordem.status === 'FINALIZADO';
+      const marcoFinal = ordem.dtFimMs || now;
+
+      return {
+        nsa: ordem.nsa,
+        documento: ordem.documento,
+        qtdSol: qtdSol,
+        qtdSep: qtdSep,
+        pct: pct,
+        separador: separador,
+        statusWms: statusWms,
+        marcoInicial: marcoInicial,
+        isFinalizado: isFinalizado,
+        marcoFinal: marcoFinal,
+        wmsInfo: wmsInfo
+      };
+    });
+
+    filtrarTabelaWms();
+  }
+
+  function filtrarTabelaWms() {
+    const buscaNsa = document.getElementById("filtroWmsNsa").value.trim().toLowerCase();
+    const filtroStatus = document.getElementById("filtroWmsStatus").value;
+    const buscaSep = document.getElementById("filtroWmsSeparador").value.trim().toLowerCase();
+
+    const tbody = document.getElementById("tableMonitorWmsBody");
+    tbody.innerHTML = "";
+
+    const filtrados = wmsPedidosArray.filter(item => {
+      if (buscaNsa && !item.nsa.toLowerCase().includes(buscaNsa)) return false;
+      if (buscaSep && !item.separador.toLowerCase().includes(buscaSep)) return false;
+      if (filtroStatus === "PENDENTES" && item.pct === 100) return false;
+      if (filtroStatus === "NAO_INICIADO" && item.pct > 0) return false;
+      if (filtroStatus === "EM_ANDAMENTO" && (item.pct === 0 || item.pct === 100)) return false;
+      if (filtroStatus === "CONCLUIDO" && item.pct < 100) return false;
+      return true;
+    });
+
+    if (filtrados.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4">Nenhum pedido atende aos filtros selecionados.</td></tr>`;
+      return;
+    }
+
+    filtrados.forEach(it => {
+      let corBarra = "bg-danger";
+      if (it.pct >= 100) corBarra = "bg-success";
+      else if (it.pct > 0) corBarra = "bg-warning";
+
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <strong class="text-primary">${it.nsa}</strong>
+            <small class="d-block text-muted">${it.documento}</small>
+          </td>
+          <td>
+            <span class="badge-sla sla-ok live-timer-row" 
+                  data-start="${it.marcoInicial}" 
+                  data-finalizado="${it.isFinalizado}" 
+                  data-fim="${it.marcoFinal}">
+              <i class="bi bi-stopwatch me-1"></i> 0d 00:00:00
+            </span>
+          </td>
+          <td>
+            <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
+              <span>${it.pct}% Separado</span>
+            </div>
+            <div class="progress-bar-wms">
+              <div class="progress-fill ${corBarra}" style="width: ${it.pct}%;"></div>
+            </div>
+          </td>
+          <td>
+            <strong>${it.qtdSep.toLocaleString('pt-BR')}</strong> / <small class="text-muted">${it.qtdSol.toLocaleString('pt-BR')} KG</small>
+          </td>
+          <td>
+            <strong class="text-dark small">${it.separador}</strong>
+          </td>
+          <td>
+            <span class="badge ${it.pct === 100 ? 'bg-success' : (it.pct > 0 ? 'bg-warning text-dark' : 'bg-secondary')}">${it.statusWms}</span>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn btn-sm btn-outline-dark py-1 px-2" onclick="abrirModalConfrontoDetalhe('${it.nsa}')" title="Ver itens deste pedido no WMS">
+              <i class="bi bi-eye"></i> Detalhes
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    updateAllLiveClocks();
+  }
+
+  function abrirModalConfrontoDetalhe(nsa) {
+    const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
+    if (!pedidoObj) return;
+
+    document.getElementById("detalhesWmsModalTitle").innerText = `Confronto WMS &bull; Pedido ${nsa} (${pedidoObj.documento})`;
+    const tbody = document.getElementById("detalhesWmsModalBody");
+    tbody.innerHTML = "";
+
+    const itens = pedidoObj.wmsInfo ? pedidoObj.wmsInfo.itens : [];
+
+    if (itens.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted p-4">Este pedido ainda não teve itens lidos no WMS.</td></tr>`;
+    } else {
+      itens.forEach(it => {
+        const ok = it.qtdSeparada >= it.quantidade;
+        tbody.innerHTML += `
+          <tr class="${ok ? 'table-success bg-opacity-25' : 'table-warning bg-opacity-25'}">
+            <td><strong>${it.codigo}</strong></td>
+            <td><small>${it.descricao}</small></td>
+            <td><strong>${it.lote}</strong></td>
+            <td><code>${it.endereco}</code></td>
+            <td><strong>${it.quantidade}</strong></td>
+            <td><strong class="${ok ? 'text-success' : 'text-danger'}">${it.qtdSeparada}</strong></td>
+            <td>${it.qtdConferida}</td>
+            <td><small>${it.separador || 'Pendente'}</small></td>
+            <td><small>${it.dtSeparacao || '-'}</small></td>
+          </tr>
+        `;
+      });
+    }
+
+    // Botão de WhatsApp de cobrança
+    document.getElementById("btnCopiarResumoCobranca").onclick = function() {
+      const msg = `*COBRANÇA OPERACIONAL - ABASTECIMENTO DE FÁBRICA*\n\n*Pedido:* ${pedidoObj.nsa} (${pedidoObj.documento})\n*Status Atual:* ${pedidoObj.pct}% Separado\n*Separador:* ${pedidoObj.separador}\n*Qtd Pendente:* ${(pedidoObj.qtdSol - pedidoObj.qtdSep).toLocaleString('pt-BR')} KG\n\nFavor priorizar a separação física deste lote com urgência!`;
+      navigator.clipboard.writeText(msg).then(() => {
+        showSysAlert("Texto Copiado!", "Mensagem de cobrança copiada para a área de transferência. Cole no WhatsApp da equipe.", "success");
+      });
+    };
+
+    new bootstrap.Modal(document.getElementById("sysDetalhesWmsModal")).show();
+  }
+
+  // PARSER LOCAL DO PDF DE PLANEJAMENTO
   function parseAbastecimentoLocal(rawText, fileName) {
     const result = {
       arquivo: fileName,
@@ -1136,9 +1577,7 @@
         return;
       }
 
-      const now = new Date().getTime();
-      const limite24h = 24 * 3600 * 1000;
-      const alerta18h = 18 * 3600 * 1000;
+      const now = Date.now();
 
       grupos.forEach(g => {
         cacheGruposNsa[g.nsa] = g;
@@ -1151,22 +1590,9 @@
 
         const totalKgFmt = somaRealKg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        // CÁLCULO DO TEMPO INDIVIDUAL DESTA ORDEM
         const marcoInicial = g.dtImpMs || g.dtImportMs || now;
+        const isFinalizado = g.status === 'FINALIZADO';
         const marcoFinal = g.dtFimMs || now;
-        const duracaoMs = Math.max(0, marcoFinal - marcoInicial);
-        const tempoFmt = formatarDuracaoMs(duracaoMs);
-
-        // CLASSE VISUAL DE SLA
-        let badgeSlaClass = "sla-ok";
-        let slaTitle = "Dentro da meta (< 24h)";
-        if (duracaoMs > limite24h) {
-          badgeSlaClass = "sla-danger";
-          slaTitle = "SLA Estourado! Mais de 24 horas";
-        } else if (duracaoMs > alerta18h) {
-          badgeSlaClass = "sla-warn";
-          slaTitle = "Atenção: Próximo de 24h";
-        }
 
         tbody.innerHTML += `
           <tr>
@@ -1183,8 +1609,11 @@
             <td><strong>${totalKgFmt} KG</strong></td>
             <td><span class="status-badge badge-${g.status.replace(/\s+/g, '')}">${g.status}</span></td>
             <td>
-              <span class="badge-sla ${badgeSlaClass}" title="${slaTitle}">
-                <i class="bi bi-stopwatch me-1"></i> ${tempoFmt}
+              <span class="badge-sla sla-ok live-timer-row" 
+                    data-start="${marcoInicial}" 
+                    data-finalizado="${isFinalizado}" 
+                    data-fim="${marcoFinal}">
+                <i class="bi bi-stopwatch me-1"></i> 0d 00:00:00
               </span>
             </td>
             <td>
@@ -1213,10 +1642,14 @@
           </tr>
         `;
       });
+
+      updateAllLiveClocks();
+      if (document.getElementById("sec-monitorWms").classList.contains("d-none") === false) {
+        renderizarTabelaConfrontoWms();
+      }
     } catch(e) {}
   }
 
-  // MODAL DE MATERIAIS COM CÓPIA RÁPIDA TOTVS
   function abrirDetalhesItens(nsa) {
     const g = cacheGruposNsa[nsa];
     if (!g) return;
