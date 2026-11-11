@@ -15,6 +15,8 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- SWEETALERT2 PARA POP-UPS ELEGANTES -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     body {
@@ -232,6 +234,57 @@
 </head>
 <body>
 
+<!-- TELA DE LOGIN OVERLAY -->
+<div id="loginOverlay" class="position-fixed w-100 h-100 bg-dark d-flex align-items-center justify-content-center" style="z-index: 9999; top: 0; left: 0;">
+  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px;">
+    <div class="text-center mb-4">
+      <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
+      <h4 class="fw-bold mt-2">Torre de Controle</h4>
+      <small class="text-muted">Gestão de Abastecimento</small>
+    </div>
+
+    <!-- FORM LOGIN -->
+    <div id="formLoginView">
+      <div class="mb-3">
+        <label class="form-label small fw-bold">E-mail Corporativo</label>
+        <input type="email" id="loginEmail" class="form-control">
+      </div>
+      <div class="mb-4">
+        <label class="form-label small fw-bold">Senha</label>
+        <input type="password" id="loginSenha" class="form-control">
+      </div>
+      <button class="btn btn-primary w-100 fw-bold mb-3" onclick="realizarLogin()">Acessar Sistema</button>
+      <div class="text-center">
+        <a href="#" class="text-decoration-none small" onclick="toggleAuthView('register')">Não possui acesso? Solicite aqui.</a>
+      </div>
+    </div>
+
+    <!-- FORM CADASTRO -->
+    <div id="formRegisterView" class="d-none">
+      <div class="mb-2">
+        <label class="form-label small fw-bold">E-mail</label>
+        <input type="email" id="regEmail" class="form-control form-control-sm">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small fw-bold">Nome Completo</label>
+        <input type="text" id="regNome" class="form-control form-control-sm">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small fw-bold">Área (Ex: NSA, Logística)</label>
+        <input type="text" id="regArea" class="form-control form-control-sm">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-bold">Criar Senha</label>
+        <input type="password" id="regSenha" class="form-control form-control-sm">
+      </div>
+      <button class="btn btn-success w-100 fw-bold mb-2" onclick="solicitarAcesso()">Solicitar Aprovação</button>
+      <div class="text-center">
+        <a href="#" class="text-decoration-none text-muted small" onclick="toggleAuthView('login')">Voltar para Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOPO FIXO -->
 <header class="top-navbar">
   <div class="top-brand">
@@ -241,10 +294,10 @@
   <div class="d-flex align-items-center gap-3">
     <div class="text-end small d-none d-md-block">
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
-      <strong id="topUserDisplay" class="text-white">ROMÁRIO SILVA (ADMIN)</strong>
+      <strong id="topUserDisplay" class="text-white"></strong>
     </div>
-    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Trocar ou autenticar usuário">
-      <i class="bi bi-person-circle"></i> Trocar Usuário
+    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do sistema">
+      <i class="bi bi-box-arrow-right"></i> Sair
     </button>
   </div>
 </header>
@@ -256,7 +309,7 @@
     <div class="col-md-2 p-0 sidebar">
       <div class="p-3 text-center border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-25 mb-2">
         <small class="d-block text-secondary">Área de Atuação:</small>
-        <strong id="sessionUserArea" class="text-light small">SUPERVISOR</strong>
+        <strong id="sessionUserArea" class="text-light small"></strong>
       </div>
       <ul class="nav flex-column">
         <li class="nav-item"><a class="nav-link active" onclick="showSection('dashboard', this)"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
@@ -264,6 +317,7 @@
         <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Ordens)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
+        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovar Usuários</a></li>
       </ul>
     </div>
 
@@ -558,6 +612,25 @@
           </div>
         </div>
       </div>
+      
+      <!-- TELA DE ADMINISTRAÇÃO (APROVAÇÃO) -->
+      <div id="sec-admin" class="content-section d-none">
+        <h4 class="fw-bold mb-3">Administração de Acessos</h4>
+        <div class="bg-white p-3 rounded shadow-sm">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>E-mail</th>
+                <th>Nome</th>
+                <th>Área</th>
+                <th>Definir Perfil</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaPendentesBody"></tbody>
+          </table>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -663,21 +736,6 @@
 </div>
 
 <!-- MODAIS DO SISTEMA -->
-<div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
-    <div class="modal-content">
-      <div class="modal-body text-center pt-4">
-        <div id="sysAlertIcon" class="icon-container mx-auto"></div>
-        <h5 id="sysAlertTitle" class="fw-bold text-dark mb-2">Mensagem</h5>
-        <div id="sysAlertMessage" class="text-secondary mb-0 small"></div>
-      </div>
-      <div class="modal-footer justify-content-center border-0 pt-0">
-        <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="modal fade sys-modal" id="sysEntregaModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
     <div class="modal-content">
@@ -754,17 +812,143 @@
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
   // USUÁRIO DA SESSÃO ATIVA
-  let currentUserSession = {
-    nome: "ROMÁRIO SILVA",
-    email: "romario.mcassab@gmail.com",
-    area: "SUPERVISOR",
-    perfil: "ADMIN"
-  };
+  let currentUserSession = null;
 
-  try {
+  function showSysAlert(title, message, type = "info") {
+    const swalType = type === "danger" ? "error" : type;
+    Swal.fire({
+      title: title,
+      html: message,
+      icon: swalType,
+      confirmButtonColor: '#0f172a'
+    });
+  }
+
+  // ==========================================
+  // CONTROLE DE SESSÃO E LOGIN
+  // ==========================================
+  document.addEventListener("DOMContentLoaded", function() {
     const saved = localStorage.getItem("torre_user_session");
-    if (saved) currentUserSession = JSON.parse(saved);
-  } catch(e) {}
+    if (saved) {
+      currentUserSession = JSON.parse(saved);
+      iniciarSistema();
+    }
+  });
+
+  function toggleAuthView(view) {
+    document.getElementById("formLoginView").classList.toggle("d-none", view === 'register');
+    document.getElementById("formRegisterView").classList.toggle("d-none", view === 'login');
+  }
+
+  async function realizarLogin() {
+    const email = document.getElementById("loginEmail").value;
+    const senha = document.getElementById("loginSenha").value;
+    
+    if (!email || !senha) return showSysAlert("Atenção", "Preencha e-mail e senha.", "warning");
+    
+    Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+    
+    const res = await apiCall("authLogin", { email, senha });
+    if (res && res.success) {
+      currentUserSession = res.user;
+      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
+      Swal.close();
+      iniciarSistema();
+    } else {
+      showSysAlert("Acesso Negado", res.error, "danger");
+    }
+  }
+
+  async function solicitarAcesso() {
+    const email = document.getElementById("regEmail").value;
+    const nome = document.getElementById("regNome").value;
+    const area = document.getElementById("regArea").value;
+    const senha = document.getElementById("regSenha").value;
+    
+    if (!email || !nome || !senha) return showSysAlert("Atenção", "Preencha todos os campos obrigatórios.", "warning");
+    
+    Swal.fire({ title: 'Enviando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+    
+    const res = await apiCall("authRegister", { email, nome, area, senha });
+    if (res && res.success) {
+      showSysAlert("Sucesso", "Cadastro realizado! Aguarde o Administrador liberar seu acesso.", "success");
+      toggleAuthView('login');
+    } else {
+      showSysAlert("Erro", res.error, "danger");
+    }
+  }
+
+  function iniciarSistema() {
+    document.getElementById("loginOverlay").classList.add("d-none");
+    atualizarExibicaoUsuario();
+    recarregarPainelCompleto();
+    
+    if (currentUserSession.perfil === "ADMIN") {
+      document.getElementById("menuAdminBtn").classList.remove("d-none");
+    }
+  }
+
+  function alterarUsuario() {
+    localStorage.removeItem("torre_user_session");
+    location.reload();
+  }
+
+  function atualizarExibicaoUsuario() {
+    if (!currentUserSession) return;
+    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
+    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
+  }
+
+  // ==========================================
+  // PAINEL DE APROVAÇÃO (ADMIN)
+  // ==========================================
+  async function carregarUsuariosPendentes() {
+    const tbody = document.getElementById("tabelaPendentesBody");
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Carregando pendentes...</td></tr>`;
+    
+    const res = await apiCall("listarUsuariosPendentes");
+    if (res && res.success) {
+      if (res.pendentes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cadastro pendente de aprovação.</td></tr>`;
+        return;
+      }
+      
+      let html = "";
+      res.pendentes.forEach(p => {
+        html += `
+          <tr>
+            <td><strong>${p.email}</strong></td>
+            <td>${p.nome}</td>
+            <td>${p.area}</td>
+            <td>
+              <select id="perfil_${p.email.replace(/[@.]/g, '')}" class="form-select form-select-sm">
+                <option value="OPERADOR">Operador Padrão</option>
+                <option value="SUPERVISOR">Supervisor</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-success fw-bold" onclick="aprovarCadastro('${p.email}')">Aprovar Acesso</button>
+            </td>
+          </tr>`;
+      });
+      tbody.innerHTML = html;
+    }
+  }
+
+  async function aprovarCadastro(email) {
+    const cleanId = email.replace(/[@.]/g, '');
+    const perfil = document.getElementById(`perfil_${cleanId}`).value;
+    Swal.fire({ title: 'Aprovando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+    
+    const res = await apiCall("aprovarUsuario", { emailAprovar: email, perfilAdmin: perfil });
+    if (res && res.success) {
+      showSysAlert("Usuário Aprovado!", `O acesso de ${email} foi liberado como ${perfil}.`, "success");
+      carregarUsuariosPendentes();
+    } else {
+      showSysAlert("Erro", "Falha ao aprovar usuário.", "danger");
+    }
+  }
 
   // ==========================================
   // NAVEGAÇÃO IMEDIATA (NUNCA BLOQUEIA CLIQUES)
@@ -789,8 +973,8 @@
   async function apiCall(action, payload = {}) {
     const bodyData = { 
       action: action, 
-      userEmail: currentUserSession.email,
-      userName: currentUserSession.nome,
+      userEmail: currentUserSession ? currentUserSession.email : '',
+      userName: currentUserSession ? currentUserSession.nome : '',
       ...payload 
     };
     const formData = new URLSearchParams();
@@ -810,20 +994,6 @@
     } catch(err) {
       return { success: false, error: err.message };
     }
-  }
-
-  function alterarUsuario() {
-    const novoNome = prompt("Informe o nome do colaborador:", currentUserSession.nome);
-    if (novoNome && novoNome.trim().length > 2) {
-      currentUserSession.nome = novoNome.trim().toUpperCase();
-      try { localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession)); } catch(e) {}
-      atualizarExibicaoUsuario();
-    }
-  }
-
-  function atualizarExibicaoUsuario() {
-    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
-    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
   }
 
   let cachedPreviewData = null;
@@ -906,28 +1076,8 @@
 
   setInterval(updateAllLiveClocks, 1000);
 
-  function showSysAlert(title, message, type = "info") {
-    const iconDiv = document.getElementById("sysAlertIcon");
-    const icons = {
-      success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
-      danger: `<i class="bi bi-x-circle-fill fs-2 text-danger"></i>`,
-      warning: `<i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>`,
-      info: `<i class="bi bi-info-circle-fill fs-2 text-primary"></i>`
-    };
-    iconDiv.className = `icon-container ${type} mx-auto`;
-    iconDiv.innerHTML = icons[type] || icons.info;
-    document.getElementById("sysAlertTitle").innerText = title;
-    document.getElementById("sysAlertMessage").innerHTML = message;
-    new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
-  }
-
-  // INICIALIZAÇÃO BLINDADA
-  document.addEventListener("DOMContentLoaded", function() {
-    atualizarExibicaoUsuario();
-    recarregarPainelCompleto();
-  });
-
   async function recarregarPainelCompleto() {
+    if (!currentUserSession) return;
     const btn = document.getElementById("btnAtualizarDashboard");
     if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Atualizando...`;
 
