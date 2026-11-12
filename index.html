@@ -8,9 +8,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   
-  <!-- SWEETALERT 2 PARA ALERTAS MODERNOS E LOADER -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
   <!-- LEITOR E GERADOR NATIVO DE PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script>
@@ -18,6 +15,9 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- SWEETALERT 2 PARA ALERTAS E LOADER NEON -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
     body {
@@ -164,26 +164,6 @@
       box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
     }
     
-    .sys-modal .modal-content {
-      border-radius: 12px;
-      border: none;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-    }
-    .sys-modal .modal-body { padding: 24px; }
-    .icon-container {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-    .icon-container.success { background-color: #dcfce7; color: #16a34a; }
-    .icon-container.danger { background-color: #fee2e2; color: #dc2626; }
-    .icon-container.warning { background-color: #fef3c7; color: #d97706; }
-    .icon-container.info { background-color: #e0e7ff; color: #4f46e5; }
-
     /* BOTÕES DE CÓPIA RÁPIDA TOTVS */
     .btn-copy-chip {
       font-size: 0.78rem;
@@ -220,21 +200,7 @@
       transition: width 0.3s ease;
     }
 
-    /* BOTÃO PERSONALIZADO TEAMS */
-    .btn-teams {
-      background-color: #464eb8;
-      color: #fff;
-      border: 1px solid #3b429f;
-      font-weight: 600;
-    }
-    .btn-teams:hover {
-      background-color: #3b429f;
-      color: #fff;
-    }
-
-    /* ========================================== */
-    /* LOADER NEON VERDE */
-    /* ========================================== */
+    /* LOADER NEON CSS */
     .neon-loader-container {
       display: flex;
       flex-direction: column;
@@ -260,10 +226,7 @@
       font-family: monospace;
       text-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes neon-glow {
       from { box-shadow: 0 0 5px #39ff14, 0 0 5px #39ff14 inset; }
       to { box-shadow: 0 0 20px #39ff14, 0 0 10px #39ff14 inset; }
@@ -272,8 +235,8 @@
 </head>
 <body>
 
-<!-- TELA DE LOGIN OVERLAY (BLOQUEIA O SISTEMA INTEIRO) -->
-<div id="loginOverlay" class="position-fixed w-100 h-100 bg-dark d-flex align-items-center justify-content-center d-none" style="z-index: 9999; top: 0; left: 0;">
+<!-- TELA DE LOGIN OVERLAY -->
+<div id="loginOverlay" class="position-fixed w-100 h-100 bg-dark d-flex align-items-center justify-content-center" style="z-index: 9999; top: 0; left: 0;">
   <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px; background: #ffffff;">
     <div class="text-center mb-4">
       <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
@@ -308,7 +271,7 @@
         <input type="text" id="regNome" class="form-control form-control-sm">
       </div>
       <div class="mb-2">
-        <label class="form-label small fw-bold text-dark">Área (Ex: NSA, Logística)</label>
+        <label class="form-label small fw-bold text-dark">Área (Ex: Logística)</label>
         <input type="text" id="regArea" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
@@ -334,7 +297,7 @@
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
       <strong id="topUserDisplay" class="text-white"></strong>
     </div>
-    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do Sistema">
+    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do sistema">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
   </div>
@@ -355,8 +318,6 @@
         <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Ordens)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
-        
-        <!-- BOTÃO DE ADMINISTRAÇÃO (SÓ APARECE PARA ADMIN) -->
         <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovar Usuários</a></li>
       </ul>
     </div>
@@ -374,12 +335,10 @@
         </div>
 
         <div class="row g-3 mb-4">
-          <!-- CARD TOTAL -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white h-100">
               <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
@@ -387,12 +346,10 @@
             </div>
           </div>
 
-          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
                 <span id="cron-pendente" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -400,12 +357,10 @@
             </div>
           </div>
 
-          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
                 <span id="cron-impressos" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -413,12 +368,10 @@
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-check2-circle"></i> Eficiência SLA:</span>
                 <span id="kpi-taxa-finalizados" class="badge bg-success bg-opacity-10 text-success fw-bold">100% no Prazo</span>
@@ -533,7 +486,6 @@
           </div>
         </div>
 
-        <!-- UPLOAD DA BASE TEMPORÁRIA WMS -->
         <div class="card card-kpi p-3 bg-white mb-3">
           <div class="row align-items-center g-2">
             <div class="col-md-5">
@@ -555,11 +507,10 @@
           </div>
         </div>
 
-        <!-- FILTROS DO CONFRONTO -->
         <div class="bg-white p-3 rounded shadow-sm mb-3">
           <div class="row g-2 align-items-center">
             <div class="col-md-4">
-              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-416, AB-416)..." oninput="filtrarTabelaWms()">
+              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-416)..." oninput="filtrarTabelaWms()">
             </div>
             <div class="col-md-4">
               <select id="filtroWmsStatus" class="form-select form-select-sm" onchange="filtrarTabelaWms()">
@@ -576,7 +527,6 @@
           </div>
         </div>
 
-        <!-- TABELA DO CONFRONTO COM CRONÔMETRO -->
         <div class="table-responsive bg-white rounded shadow-sm p-3">
           <table class="table table-hover align-middle table-sm">
             <thead class="table-dark">
@@ -591,12 +541,7 @@
               </tr>
             </thead>
             <tbody id="tableMonitorWmsBody">
-              <tr>
-                <td colspan="7" class="text-center text-muted p-4">
-                  <i class="bi bi-cloud-arrow-up fs-3 d-block mb-1 text-secondary"></i>
-                  Suba o arquivo CSV extraído do WMS acima para confrontar os pedidos em tempo real.
-                </td>
-              </tr>
+              <tr><td colspan="7" class="text-center text-muted p-4">Suba o arquivo CSV extraído do WMS acima para confrontar os pedidos em tempo real.</td></tr>
             </tbody>
           </table>
         </div>
@@ -643,17 +588,14 @@
             </thead>
             <tbody id="tableHistoryBody"></tbody>
           </table>
-
           <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
             <small id="auditTotalInfo" class="text-muted">Carregando...</small>
-            <nav>
-              <ul class="pagination pagination-sm m-0" id="auditPaginationUl"></ul>
-            </nav>
+            <nav><ul class="pagination pagination-sm m-0" id="auditPaginationUl"></ul></nav>
           </div>
         </div>
       </div>
       
-      <!-- TELA DE ADMINISTRAÇÃO (APROVAÇÃO DE USUÁRIOS) -->
+      <!-- TELA DE ADMINISTRAÇÃO (APROVAÇÃO) -->
       <div id="sec-admin" class="content-section d-none">
         <h4 class="fw-bold mb-3">Administração de Acessos</h4>
         <div class="bg-white p-3 rounded shadow-sm">
@@ -676,15 +618,14 @@
   </div>
 </div>
 
-<!-- RODAPÉ FIXO -->
 <footer class="fixed-footer">
   <span>CRIADO E DESENVOLVIDO POR: <strong>ROMÁRIO SILVA</strong></span>
 </footer>
 
-<!-- MODAL DE VISUALIZAÇÃO DE ITENS E CÓPIA TOTVS -->
-<div class="modal fade sys-modal" id="sysDetalhesModal" tabindex="-1">
+<!-- MODAL DE VISUALIZAÇÃO DE ITENS -->
+<div class="modal fade" id="sysDetalhesModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header border-bottom bg-light">
         <div>
           <h5 class="modal-title fw-bold text-dark m-0" id="detalhesModalTitle">Materiais do Pedido WMS</h5>
@@ -710,17 +651,17 @@
         </div>
       </div>
       <div class="modal-footer border-top bg-light justify-content-between">
-        <small class="text-secondary"><i class="bi bi-info-circle me-1"></i> O botão <strong>"Copiar Linha"</strong> copia todos os dados tabulados prontos para colar no ERP.</small>
+        <small class="text-secondary"><i class="bi bi-info-circle me-1"></i> O botão <strong>"Copiar Linha"</strong> copia todos os dados tabulados.</small>
         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Fechar</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM -->
-<div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
+<!-- MODAL DETALHE DO CONFRONTO WMS -->
+<div class="modal fade" id="sysDetalhesWmsModal" tabindex="-1">
   <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content border-0 shadow-lg">
       <div class="modal-header border-bottom bg-dark text-white">
         <div>
           <h5 class="modal-title fw-bold m-0" id="detalhesWmsModalTitle">Auditoria de Separação WMS</h5>
@@ -729,8 +670,6 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-3">
-        
-        <!-- ALERTA DE 100% CONCLUÍDO -->
         <div id="wmsAlert100Box" class="alert alert-success border-success border-2 shadow-sm d-none mb-3">
           <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -742,10 +681,7 @@
             </button>
           </div>
         </div>
-
-        <!-- PAINEL SUPERIOR DE INDICADORES -->
         <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
-
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle border">
             <thead class="table-light">
@@ -766,4 +702,175 @@
         </div>
       </div>
       <div class="modal-footer border-top bg-light justify-content-between">
-        <button type="button" class="btn btn-sm btn-teams px-3 py-2" id="btnCopiarResumoCobranca
+        <button type="button" class="btn btn-sm btn-teams px-3 py-2" id="btnCopiarResumoCobranca">
+          <i class="bi bi-microsoft-teams me-1"></i> Copiar Cobrança p/ Teams
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ==========================================
+  // ATENÇÃO: COLOQUE A SUA URL DA NOVA VERSÃO AQUI
+  // ==========================================
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
+
+  let currentUserSession = null;
+
+  function showSysAlert(title, message, type = "info") {
+    Swal.fire({ title: title, html: message, icon: type === "danger" ? "error" : type, confirmButtonColor: '#0f172a' });
+  }
+
+  function showLoadingNeon(texto) {
+    Swal.fire({
+      html: `<div class="neon-loader-container"><div class="neon-spinner"></div><div class="neon-text">${texto}</div></div>`,
+      background: '#0f172a', showConfirmButton: false, allowOutsideClick: false
+    });
+  }
+
+  // ==========================================
+  // VERIFICAÇÃO DE CACHE CORROMPIDO (O que causou o problema anterior)
+  // ==========================================
+  document.addEventListener("DOMContentLoaded", function() {
+    try {
+      const saved = localStorage.getItem("torre_user_session");
+      if (saved && saved !== "undefined") {
+        currentUserSession = JSON.parse(saved);
+        // Se a sessão estiver quebrada (ex: sem email/nome salvo), joga pro erro e zera o cache
+        if (!currentUserSession || !currentUserSession.email || !currentUserSession.nome) {
+            throw new Error("Sessão Corrompida pelo Cache Antigo");
+        }
+        iniciarSistema();
+      } else {
+        document.getElementById("loginOverlay").classList.remove("d-none");
+      }
+    } catch(e) {
+      // Limpa a sujeira do navegador e mostra a tela de login novinha
+      localStorage.removeItem("torre_user_session");
+      document.getElementById("loginOverlay").classList.remove("d-none");
+    }
+  });
+
+  function toggleAuthView(view) {
+    document.getElementById("formLoginView").classList.toggle("d-none", view === 'register');
+    document.getElementById("formRegisterView").classList.toggle("d-none", view === 'login');
+  }
+
+  async function realizarLogin() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const senha = document.getElementById("loginSenha").value.trim();
+    if (!email || !senha) return showSysAlert("Atenção", "Preencha e-mail e senha.", "warning");
+    
+    showLoadingNeon('AUTENTICANDO...');
+    const res = await apiCall("authLogin", { email, senha });
+    
+    // DEFESA DE TITÂNIO: Verifica se o Apps Script não foi atualizado!
+    if (res && res.success && !res.user && !res.error) {
+      Swal.close();
+      showSysAlert("Erro de Implantação ⚠️", "O script antigo está respondendo no Google!<br><br>Você precisa ir no Apps Script, clicar em <b>Implantar > Gerenciar Implantações > Editar > Nova Versão</b> para o sistema de login funcionar.", "error");
+      return;
+    }
+
+    if (res && res.success && res.user) {
+      currentUserSession = res.user;
+      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
+      Swal.close();
+      iniciarSistema();
+    } else {
+      Swal.close();
+      showSysAlert("Acesso Negado", res ? res.error : "Erro de comunicação.", "danger");
+    }
+  }
+
+  async function solicitarAcesso() {
+    const email = document.getElementById("regEmail").value.trim();
+    const nome = document.getElementById("regNome").value.trim();
+    const area = document.getElementById("regArea").value.trim();
+    const senha = document.getElementById("regSenha").value.trim();
+    if (!email || !nome || !senha) return showSysAlert("Atenção", "Preencha todos os campos obrigatórios.", "warning");
+    
+    showLoadingNeon('PROCESSANDO...');
+    const res = await apiCall("authRegister", { email, nome, area, senha });
+
+    if (res && res.success && !res.error && res.message === "OK") {
+      Swal.close();
+      showSysAlert("Erro de Implantação ⚠️", "O script antigo está respondendo no Google!<br><br>Publique uma <b>Nova Versão</b> no Apps Script para habilitar o banco de usuários.", "error");
+      return;
+    }
+
+    if (res && res.success) {
+      Swal.close();
+      showSysAlert("Sucesso", "Cadastro realizado! Aguarde o Administrador liberar seu acesso.", "success");
+      toggleAuthView('login');
+    } else {
+      Swal.close();
+      showSysAlert("Erro", res ? res.error : "Erro de comunicação.", "danger");
+    }
+  }
+
+  function iniciarSistema() {
+    document.getElementById("loginOverlay").classList.add("d-none");
+    atualizarExibicaoUsuario();
+    recarregarPainelCompleto();
+    if (currentUserSession && currentUserSession.perfil === "ADMIN") {
+      document.getElementById("menuAdminBtn").classList.remove("d-none");
+    }
+  }
+
+  function alterarUsuario() {
+    localStorage.removeItem("torre_user_session");
+    location.reload();
+  }
+
+  function atualizarExibicaoUsuario() {
+    if (!currentUserSession) return;
+    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
+    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
+  }
+
+  async function carregarUsuariosPendentes() {
+    const tbody = document.getElementById("tabelaPendentesBody");
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Carregando pendentes...</td></tr>`;
+    const res = await apiCall("listarUsuariosPendentes");
+    if (res && res.success) {
+      if (!res.pendentes || res.pendentes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cadastro pendente de aprovação.</td></tr>`;
+        return;
+      }
+      let html = "";
+      res.pendentes.forEach(p => {
+        html += `<tr>
+          <td><strong>${p.email}</strong></td><td>${p.nome}</td><td>${p.area}</td>
+          <td><select id="perfil_${p.email.replace(/[@.]/g, '')}" class="form-select form-select-sm"><option value="OPERADOR">Operador Padrão</option><option value="SUPERVISOR">Supervisor</option><option value="ADMIN">Administrador</option></select></td>
+          <td><button class="btn btn-sm btn-success fw-bold" onclick="aprovarCadastro('${p.email}')">Aprovar Acesso</button></td>
+        </tr>`;
+      });
+      tbody.innerHTML = html;
+    } else {
+       tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Erro ao carregar usuários.</td></tr>`;
+    }
+  }
+
+  async function aprovarCadastro(email) {
+    const cleanId = email.replace(/[@.]/g, '');
+    const perfil = document.getElementById(`perfil_${cleanId}`).value;
+    showLoadingNeon('APROVANDO...');
+    const res = await apiCall("aprovarUsuario", { emailAprovar: email, perfilAdmin: perfil });
+    Swal.close();
+    if (res && res.success) {
+      showSysAlert("Usuário Aprovado!", `Acesso de ${email} liberado como ${perfil}.`, "success");
+      carregarUsuariosPendentes();
+    } else showSysAlert("Erro", res.error || "Falha ao aprovar usuário.", "danger");
+  }
+
+  function showSection(sectionId, element) {
+    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
+    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
+    const target = document.getElementById("sec-" + sectionId);
+    if (target) target.classList.remove("d-none");
+    if (element) element.classList.add("active");
+
+    if (sectionId === "dashboard") recarregarPainelCompleto
