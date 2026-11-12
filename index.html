@@ -15,7 +15,8 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <!-- SWEETALERT2 PARA POP-UPS ELEGANTES -->
+
+  <!-- SWEETALERT 2 PARA ALERTAS MODERNOS E LOADER -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
@@ -231,12 +232,61 @@
       color: #fff;
     }
 
-    /* ESTILOS DO NOVO LOADER NEON VERDE */
-    .neon-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .neon-spinner { width: 70px; height: 70px; border: 4px solid rgba(57, 255, 20, 0.1); border-top-color: #39ff14; border-right-color: #39ff14; border-radius: 50%; animation: spin 1s linear infinite, neon-glow 1.5s ease-in-out infinite alternate; margin-bottom: 25px; }
-    .neon-text { color: #39ff14; font-weight: bold; font-size: 1.2rem; letter-spacing: 3px; font-family: monospace; text-shadow: 0 0 10px rgba(57, 255, 20, 0.8); }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes neon-glow { from { box-shadow: 0 0 5px #39ff14, 0 0 5px #39ff14 inset; } to { box-shadow: 0 0 20px #39ff14, 0 0 10px #39ff14 inset; } }
+    /* ========================================== */
+    /* LOADER LOGÍSTICO (CAIXA COM LEITOR NEON E BLUR) */
+    /* ========================================== */
+    .logistics-loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .scan-container {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 25px;
+    }
+    .scan-box {
+      font-size: 5rem;
+      color: #94a3b8; 
+      line-height: 1;
+    }
+    .scan-laser {
+      position: absolute;
+      top: 0;
+      left: -15%;
+      width: 130%;
+      height: 4px;
+      background-color: #39ff14; 
+      box-shadow: 0 0 15px 3px rgba(57, 255, 20, 0.8);
+      border-radius: 2px;
+      animation: scan-action 1.2s ease-in-out infinite alternate;
+    }
+    .neon-text {
+      color: #39ff14;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 3px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.6);
+      text-transform: uppercase;
+    }
+    @keyframes scan-action {
+      0% { top: 5%; }
+      100% { top: 95%; }
+    }
+    /* Classes injetadas no SweetAlert2 para dar o efeito de fundo escuro borrado */
+    .logistics-blur-backdrop {
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+      background: rgba(15, 23, 42, 0.85) !important; 
+    }
+    .logistics-transparent-popup {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
   </style>
 </head>
 <body>
@@ -303,7 +353,7 @@
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
       <strong id="topUserDisplay" class="text-white"></strong>
     </div>
-    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Trocar ou autenticar usuário">
+    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do sistema">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
   </div>
@@ -325,7 +375,8 @@
         <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
         
-        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovar Usuários</a></li>
+        <!-- BOTÃO DE ADMINISTRAÇÃO (SÓ APARECE PARA ADMIN) -->
+        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovação Admin</a></li>
       </ul>
     </div>
 
@@ -342,12 +393,10 @@
         </div>
 
         <div class="row g-3 mb-4">
-          <!-- CARD TOTAL -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white h-100">
               <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
@@ -355,12 +404,10 @@
             </div>
           </div>
 
-          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
                 <span id="cron-pendente" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -368,12 +415,10 @@
             </div>
           </div>
 
-          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
                 <span id="cron-impressos" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -381,12 +426,10 @@
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-check2-circle"></i> Eficiência SLA:</span>
                 <span id="kpi-taxa-finalizados" class="badge bg-success bg-opacity-10 text-success fw-bold">100% no Prazo</span>
@@ -811,6 +854,7 @@
       </div>
       <div class="modal-footer justify-content-end border-0">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <!-- AQUI O BOTÃO FECHA O MODAL ANTES DE CHAMAR O LOADER -->
         <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarReimpressaoAcao()">Gerar PDF Novamente</button>
       </div>
     </div>
@@ -821,12 +865,8 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // USUÁRIO DA SESSÃO ATIVA
   let currentUserSession = null;
 
-  // ==========================================
-  // SUBSTITUIÇÃO DOS POPUPS BOOTSTRAP POR SWEETALERT2 COM FALLBACK
-  // ==========================================
   function showSysAlert(title, message, type = "info") {
     if (typeof Swal !== 'undefined') {
       const swalType = type === "danger" ? "error" : type;
@@ -841,18 +881,25 @@
     }
   }
 
+  // LOADER NEON LOGÍSTICO (CAIXA E LASER)
   function showLoadingNeon(texto) {
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         html: `
-          <div class="neon-loader-container">
-            <div class="neon-spinner"></div>
+          <div class="logistics-loader-container">
+            <div class="scan-container">
+              <i class="bi bi-box-seam scan-box"></i>
+              <div class="scan-laser"></div>
+            </div>
             <div class="neon-text">${texto}</div>
           </div>
         `,
-        background: '#0f172a',
         showConfirmButton: false,
-        allowOutsideClick: false
+        allowOutsideClick: false,
+        customClass: {
+          container: 'logistics-blur-backdrop',
+          popup: 'logistics-transparent-popup'
+        }
       });
     }
   }
@@ -863,9 +910,6 @@
     }
   }
 
-  // ==========================================
-  // NAVEGAÇÃO IMEDIATA E CONTROLE DE SESSÃO
-  // ==========================================
   document.addEventListener("DOMContentLoaded", function() {
     const saved = localStorage.getItem("torre_user_session");
     if (saved) {
@@ -1048,7 +1092,6 @@
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
-  // BASE WMS (EM MEMÓRIA E CACHE LOCAL)
   let wmsDataAgrupada = {};
   let wmsPedidosArray = [];
 
@@ -1169,9 +1212,6 @@
     } catch(e) {}
   }
 
-  // =========================================================================
-  // PROCESSAMENTO DO CSV WMS
-  // =========================================================================
   function parseCSVLine(text) {
     const p = [',', ';', '\t'];
     let sep = ';';
@@ -1604,7 +1644,9 @@
       );
     };
 
-    const modalInst = new bootstrap.Modal(document.getElementById("sysDetalhesWmsModal"));
+    const modalEl = document.getElementById("sysDetalhesWmsModal");
+    let modalInst = bootstrap.Modal.getInstance(modalEl);
+    if(!modalInst) modalInst = new bootstrap.Modal(modalEl);
     modalInst.show();
   }
 
@@ -1760,7 +1802,9 @@
     });
 
     tbody.innerHTML = itensHtml;
-    const modalInst = new bootstrap.Modal(document.getElementById("sysDetalhesModal"));
+    const modalEl = document.getElementById("sysDetalhesModal");
+    let modalInst = bootstrap.Modal.getInstance(modalEl);
+    if(!modalInst) modalInst = new bootstrap.Modal(modalEl);
     modalInst.show();
   }
 
@@ -1793,8 +1837,6 @@
   function abrirModalEntregaOperador(nsa) {
     document.getElementById("entregaNsaInput").value = nsa;
     document.getElementById("entregaOperadorNome").value = "";
-    
-    // CORREÇÃO DOS MODAIS ANTIGOS
     const modalEl = document.getElementById("sysEntregaModal");
     let modalInst = bootstrap.Modal.getInstance(modalEl);
     if(!modalInst) modalInst = new bootstrap.Modal(modalEl);
@@ -1834,7 +1876,6 @@
     document.getElementById("finalizarNsaInput").value = nsa;
     document.getElementById("finalizarRecebedorNome").value = "";
     document.getElementById("finalizarObsInput").value = "";
-    
     const modalEl = document.getElementById("sysFinalizarModal");
     let modalInst = bootstrap.Modal.getInstance(modalEl);
     if(!modalInst) modalInst = new bootstrap.Modal(modalEl);
@@ -1883,12 +1924,12 @@
         document.getElementById("sysReimpDesc").innerText = res.message;
         document.getElementById("sysReimpMotivo").value = "";
         
-        // CORREÇÃO: ABRE O MODAL ANTIGO DE REIMPRESSÃO CORRETAMENTE
+        // CORREÇÃO: Abre o modal do Bootstrap certinho e sem conflito de tela preta
         const modalEl = document.getElementById("sysReimpressaoModal");
         let modalInst = bootstrap.Modal.getInstance(modalEl);
         if(!modalInst) modalInst = new bootstrap.Modal(modalEl);
         modalInst.show();
-        
+
       } else if (res && res.success) {
         gerarEBaixarPdfOficial(res.ordem);
         loadControleOrders();
@@ -1906,11 +1947,11 @@
       showSysAlert("Atenção", "O motivo da reimpressão da ordem é obrigatório (mínimo de 5 caracteres).", "warning");
       return;
     }
-    
+
     const modalEl = document.getElementById("sysReimpressaoModal");
     const modalInst = bootstrap.Modal.getInstance(modalEl);
     if(modalInst) modalInst.hide();
-    
+
     acionarImpressaoNsa(reimpCurrentNsa, true, motivo);
   }
 
