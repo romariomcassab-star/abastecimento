@@ -16,6 +16,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
+  <!-- SWEETALERT 2 PARA ALERTAS MODERNOS E LOADER -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
     body {
       background-color: #f8fafc;
@@ -228,56 +231,63 @@
       background-color: #3b429f;
       color: #fff;
     }
+
+    /* ESTILOS DO NOVO LOADER NEON VERDE */
+    .neon-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .neon-spinner { width: 70px; height: 70px; border: 4px solid rgba(57, 255, 20, 0.1); border-top-color: #39ff14; border-right-color: #39ff14; border-radius: 50%; animation: spin 1s linear infinite, neon-glow 1.5s ease-in-out infinite alternate; margin-bottom: 25px; }
+    .neon-text { color: #39ff14; font-weight: bold; font-size: 1.2rem; letter-spacing: 3px; font-family: monospace; text-shadow: 0 0 10px rgba(57, 255, 20, 0.8); }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes neon-glow { from { box-shadow: 0 0 5px #39ff14, 0 0 5px #39ff14 inset; } to { box-shadow: 0 0 20px #39ff14, 0 0 10px #39ff14 inset; } }
   </style>
 </head>
 <body>
 
-<!-- OVERLAY DE LOGIN (NOVO - NATIVO BOOTSTRAP) -->
+<!-- TELA DE LOGIN OVERLAY (BLOQUEIA O SISTEMA INTEIRO) -->
 <div id="loginOverlay" class="position-fixed w-100 h-100 bg-dark d-flex align-items-center justify-content-center" style="z-index: 9999; top: 0; left: 0;">
-  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px;">
+  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px; border: 1px solid #334155; background: #1e293b; color: #fff;">
     <div class="text-center mb-4">
       <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
       <h4 class="fw-bold mt-2">Torre de Controle</h4>
-      <small class="text-muted">Gestão de Abastecimento</small>
+      <small class="text-secondary">Gestão de Abastecimento</small>
     </div>
-
+    
     <!-- FORM LOGIN -->
     <div id="formLoginView">
       <div class="mb-3">
-        <label class="form-label small fw-bold">E-mail Corporativo</label>
-        <input type="email" id="loginEmail" class="form-control">
+        <label class="form-label small fw-bold text-light">E-mail Corporativo</label>
+        <input type="email" id="loginEmail" class="form-control text-dark">
       </div>
       <div class="mb-4">
-        <label class="form-label small fw-bold">Senha</label>
-        <input type="password" id="loginSenha" class="form-control" onkeyup="if(event.key === 'Enter') realizarLogin()">
+        <label class="form-label small fw-bold text-light">Senha</label>
+        <input type="password" id="loginSenha" class="form-control text-dark" onkeyup="if(event.key === 'Enter') realizarLogin()">
       </div>
-      <button class="btn btn-primary w-100 fw-bold mb-3" id="btnLoginAction" onclick="realizarLogin()">Acessar Sistema</button>
+      <button class="btn btn-primary w-100 fw-bold mb-3 py-2" onclick="realizarLogin()">Acessar Sistema</button>
       <div class="text-center">
-        <a href="#" class="text-decoration-none small" onclick="toggleAuthView('register')">Não possui acesso? Solicite aqui.</a>
+        <a href="javascript:void(0)" class="text-decoration-none small text-info" onclick="toggleAuthView('register')">Não possui acesso? Solicite aqui.</a>
       </div>
     </div>
-
+    
     <!-- FORM CADASTRO -->
     <div id="formRegisterView" class="d-none">
       <div class="mb-2">
-        <label class="form-label small fw-bold">E-mail</label>
-        <input type="email" id="regEmail" class="form-control form-control-sm">
+        <label class="form-label small fw-bold text-light">E-mail</label>
+        <input type="email" id="regEmail" class="form-control form-control-sm text-dark">
       </div>
       <div class="mb-2">
-        <label class="form-label small fw-bold">Nome Completo</label>
-        <input type="text" id="regNome" class="form-control form-control-sm">
+        <label class="form-label small fw-bold text-light">Nome Completo</label>
+        <input type="text" id="regNome" class="form-control form-control-sm text-dark">
       </div>
       <div class="mb-2">
-        <label class="form-label small fw-bold">Área (Ex: Logística)</label>
-        <input type="text" id="regArea" class="form-control form-control-sm">
+        <label class="form-label small fw-bold text-light">Área (Ex: Logística)</label>
+        <input type="text" id="regArea" class="form-control form-control-sm text-dark">
       </div>
       <div class="mb-3">
-        <label class="form-label small fw-bold">Criar Senha</label>
-        <input type="password" id="regSenha" class="form-control form-control-sm" onkeyup="if(event.key === 'Enter') solicitarAcesso()">
+        <label class="form-label small fw-bold text-light">Criar Senha</label>
+        <input type="password" id="regSenha" class="form-control form-control-sm text-dark" onkeyup="if(event.key === 'Enter') solicitarAcesso()">
       </div>
-      <button class="btn btn-success w-100 fw-bold mb-2" id="btnRegisterAction" onclick="solicitarAcesso()">Solicitar Aprovação</button>
+      <button class="btn btn-success w-100 fw-bold mb-2 py-2" onclick="solicitarAcesso()">Solicitar Aprovação</button>
       <div class="text-center">
-        <a href="#" class="text-decoration-none text-muted small" onclick="toggleAuthView('login')">Voltar para Login</a>
+        <a href="javascript:void(0)" class="text-decoration-none text-muted small" onclick="toggleAuthView('login')">Voltar para Login</a>
       </div>
     </div>
   </div>
@@ -294,7 +304,6 @@
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
       <strong id="topUserDisplay" class="text-white"></strong>
     </div>
-    <!-- BOTÃO DE LOGOUT ADICIONADO AQUI -->
     <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do sistema">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
@@ -316,8 +325,9 @@
         <li class="nav-item"><a class="nav-link" onclick="showSection('controle', this)"><i class="bi bi-card-checklist"></i> Pedidos WMS (Ordens)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
-        <!-- MENU ADMIN -->
-        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovar Usuários</a></li>
+        
+        <!-- BOTÃO DE ADMINISTRAÇÃO (SÓ APARECE PARA ADMIN) -->
+        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovação Admin</a></li>
       </ul>
     </div>
 
@@ -334,12 +344,10 @@
         </div>
 
         <div class="row g-3 mb-4">
-          <!-- CARD TOTAL -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white h-100">
               <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
@@ -347,12 +355,10 @@
             </div>
           </div>
 
-          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
                 <span id="cron-pendente" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -360,12 +366,10 @@
             </div>
           </div>
 
-          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
                 <span id="cron-impressos" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -373,12 +377,10 @@
             </div>
           </div>
 
-          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
-              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-check2-circle"></i> Eficiência SLA:</span>
                 <span id="kpi-taxa-finalizados" class="badge bg-success bg-opacity-10 text-success fw-bold">100% no Prazo</span>
@@ -502,939 +504,4 @@
               </label>
               <input type="file" id="wmsCsvInput" class="form-control form-control-sm" accept=".csv, text/csv">
             </div>
-            <div class="col-md-3 mt-md-4">
-              <button id="btnProcessarCsvWms" class="btn btn-warning btn-sm w-100 fw-bold" onclick="processarBaseWmsCsv()">
-                <i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base
-              </button>
-            </div>
-            <div class="col-md-4 mt-md-4 text-md-end">
-              <span id="wmsBaseStatusBadge" class="badge bg-light text-secondary border py-2 px-3">
-                <i class="bi bi-info-circle me-1"></i> Nenhuma base carregada
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- FILTROS DO CONFRONTO -->
-        <div class="bg-white p-3 rounded shadow-sm mb-3">
-          <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-              <input type="text" id="filtroWmsNsa" class="form-control form-control-sm" placeholder="Buscar Pedido (ex: NSA-416, AB-416)..." oninput="filtrarTabelaWms()">
-            </div>
-            <div class="col-md-4">
-              <select id="filtroWmsStatus" class="form-select form-select-sm" onchange="filtrarTabelaWms()">
-                <option value="TODOS" selected>Todos os Estágios de Separação</option>
-                <option value="PENDENTES">Somente Em Aberto / Com Pendência (&lt; 100%)</option>
-                <option value="CONCLUIDO">100% Separado (Pronto para Retorno)</option>
-                <option value="NAO_INICIADO">Não Iniciados (0% Separado)</option>
-                <option value="EM_ANDAMENTO">Em Separação Parcial</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <input type="text" id="filtroWmsSeparador" class="form-control form-control-sm" placeholder="Buscar por Separador..." oninput="filtrarTabelaWms()">
-            </div>
-          </div>
-        </div>
-
-        <!-- TABELA DO CONFRONTO COM CRONÔMETRO -->
-        <div class="table-responsive bg-white rounded shadow-sm p-3">
-          <table class="table table-hover align-middle table-sm">
-            <thead class="table-dark">
-              <tr>
-                <th style="width: 14%;">Pedido / NSA</th>
-                <th style="width: 16%;">Tempo de Processo (SLA)</th>
-                <th style="width: 18%;">Progresso de Separação</th>
-                <th style="width: 13%;">Qtd Solicitada / Sep.</th>
-                <th style="width: 18%;">Separador Responsável</th>
-                <th style="width: 11%;">Status WMS</th>
-                <th style="width: 10%; text-align: center;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tableMonitorWmsBody">
-              <tr>
-                <td colspan="7" class="text-center text-muted p-4">
-                  <i class="bi bi-cloud-arrow-up fs-3 d-block mb-1 text-secondary"></i>
-                  Suba o arquivo CSV extraído do WMS acima para confrontar os pedidos em tempo real.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- AUDITORIA COM FILTRO DE PERÍODO E PAGINAÇÃO -->
-      <div id="sec-historico" class="content-section d-none">
-        <h4 class="fw-bold mb-3">Trilha de Auditoria e Histórico Operacional</h4>
-        
-        <div class="bg-white p-3 rounded shadow-sm mb-3">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-              <label class="form-label small fw-bold text-secondary mb-1">Data Inicial:</label>
-              <input type="date" id="auditDataInicio" class="form-control form-control-sm">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label small fw-bold text-secondary mb-1">Data Final:</label>
-              <input type="date" id="auditDataFim" class="form-control form-control-sm">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label small fw-bold text-secondary mb-1">Buscar NSA:</label>
-              <input type="text" id="auditNsaBusca" class="form-control form-control-sm" placeholder="Ex: NSA-332">
-            </div>
-            <div class="col-md-3">
-              <button class="btn btn-dark btn-sm w-100" onclick="loadAuditPage(1)">
-                <i class="bi bi-funnel-fill"></i> Filtrar Auditoria
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="table-responsive bg-white rounded shadow-sm p-3">
-          <table class="table table-sm table-striped align-middle">
-            <thead class="table-light">
-              <tr>
-                <th>Data/Hora</th>
-                <th>NSA</th>
-                <th>Ação</th>
-                <th>De &rarr; Para</th>
-                <th>Usuário</th>
-                <th>Área</th>
-                <th>Observação Operacional</th>
-              </tr>
-            </thead>
-            <tbody id="tableHistoryBody"></tbody>
-          </table>
-
-          <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-            <small id="auditTotalInfo" class="text-muted">Carregando...</small>
-            <nav>
-              <ul class="pagination pagination-sm m-0" id="auditPaginationUl"></ul>
-            </nav>
-          </div>
-        </div>
-      </div>
-      
-      <!-- TELA DE ADMINISTRAÇÃO (APROVAÇÃO) -->
-      <div id="sec-admin" class="content-section d-none">
-        <h4 class="fw-bold mb-3">Administração de Acessos</h4>
-        <div class="bg-white p-3 rounded shadow-sm">
-          <table class="table table-hover align-middle">
-            <thead class="table-dark">
-              <tr>
-                <th>E-mail</th>
-                <th>Nome</th>
-                <th>Área</th>
-                <th>Definir Perfil</th>
-                <th>Ação</th>
-              </tr>
-            </thead>
-            <tbody id="tabelaPendentesBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- RODAPÉ FIXO -->
-<footer class="fixed-footer">
-  <span>CRIADO E DESENVOLVIDO POR: <strong>ROMÁRIO SILVA</strong></span>
-</footer>
-
-<!-- MODAL DE VISUALIZAÇÃO DE ITENS E CÓPIA TOTVS -->
-<div class="modal fade sys-modal" id="sysDetalhesModal" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-bottom bg-light">
-        <div>
-          <h5 class="modal-title fw-bold text-dark m-0" id="detalhesModalTitle">Materiais do Pedido WMS</h5>
-          <small class="text-muted">Clique nos botões abaixo para copiar instantaneamente Código, Lote e Validade para o TOTVS / QR Code.</small>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle border">
-            <thead class="table-dark">
-              <tr>
-                <th style="width: 25%;">Produto / Código</th>
-                <th style="width: 22%;">Lote (Clique p/ Copiar)</th>
-                <th style="width: 16%;">Validade</th>
-                <th style="width: 14%;">Origem &rarr; Destino</th>
-                <th style="width: 11%;">Quantidade</th>
-                <th style="width: 12%; text-align: center;">Linha TOTVS</th>
-              </tr>
-            </thead>
-            <tbody id="detalhesModalBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer border-top bg-light justify-content-between">
-        <small class="text-secondary"><i class="bi bi-info-circle me-1"></i> O botão <strong>"Copiar Linha"</strong> copia todos os dados tabulados prontos para colar no ERP.</small>
-        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Fechar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DETALHE DO CONFRONTO WMS ITEM A ITEM -->
-<div class="modal fade sys-modal" id="sysDetalhesWmsModal" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-bottom bg-dark text-white">
-        <div>
-          <h5 class="modal-title fw-bold m-0" id="detalhesWmsModalTitle">Auditoria de Separação WMS</h5>
-          <small class="text-secondary">Visão detalhada de cada material no coletor do separador.</small>
-        </div>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-3">
-        
-        <!-- ALERTA DE 100% CONCLUÍDO -->
-        <div id="wmsAlert100Box" class="alert alert-success border-success border-2 shadow-sm d-none mb-3">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="bi bi-check-circle-fill me-2 fs-5"></i> Ordem 100% Separada fisicamente no WMS!</h6>
-              <span class="small">Todos os materiais foram bipados. Verifique se as vias físicas já retornaram da fábrica para <strong>Finalizar e Arquivar</strong> a ordem.</span>
-            </div>
-            <button id="btnFinalizarDiretoWms" class="btn btn-success fw-bold px-3">
-              <i class="bi bi-box-arrow-down me-1"></i> Registrar Retorno e Finalizar
-            </button>
-          </div>
-        </div>
-
-        <!-- PAINEL SUPERIOR DE INDICADORES -->
-        <div class="row g-2 mb-3" id="wmsDetailHeaderMetrics"></div>
-
-        <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle border">
-            <thead class="table-light">
-              <tr>
-                <th>Código</th>
-                <th>Descrição do Produto</th>
-                <th>Lote</th>
-                <th>Endereço</th>
-                <th>Qtd Pedida</th>
-                <th>Qtd Separada</th>
-                <th>Qtd Conferida</th>
-                <th>Separador</th>
-                <th>Data/Hora Separação</th>
-              </tr>
-            </thead>
-            <tbody id="detalhesWmsModalBody"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer border-top bg-light justify-content-between">
-        <button type="button" class="btn btn-sm btn-teams px-3 py-2" id="btnCopiarResumoCobranca">
-          <i class="bi bi-microsoft-teams me-1"></i> Copiar Cobrança p/ Teams
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm px-4" data-bs-dismiss="modal">Fechar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAIS DO SISTEMA NATIVOS (RESTAURADOS DO ORIGINAL) -->
-<div class="modal fade sys-modal" id="sysAlertModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
-    <div class="modal-content">
-      <div class="modal-body text-center pt-4">
-        <div id="sysAlertIcon" class="icon-container mx-auto"></div>
-        <h5 id="sysAlertTitle" class="fw-bold text-dark mb-2">Mensagem</h5>
-        <div id="sysAlertMessage" class="text-secondary mb-0 small"></div>
-      </div>
-      <div class="modal-footer justify-content-center border-0 pt-0">
-        <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade sys-modal" id="sysEntregaModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
-    <div class="modal-content">
-      <div class="modal-body pt-4">
-        <div class="icon-container warning mx-auto">
-          <i class="bi bi-person-badge fs-2 text-warning"></i>
-        </div>
-        <h5 class="fw-bold text-dark text-center mb-1">Entregar Ordem ao Operador</h5>
-        <p class="text-secondary text-center small mb-3">Informe o operador responsável pela separação física deste lote.</p>
-        
-        <input type="hidden" id="entregaNsaInput">
-        <label class="form-label fw-bold small text-dark">Nome do Operador (Obrigatório):</label>
-        <input type="text" id="entregaOperadorNome" class="form-control" placeholder="Ex: Valdir, Carlos, Daniel...">
-      </div>
-      <div class="modal-footer justify-content-end border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarEntregaOperadorAcao()">Confirmar Entrega</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade sys-modal" id="sysFinalizarModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
-    <div class="modal-content">
-      <div class="modal-body pt-4">
-        <div class="icon-container success mx-auto">
-          <i class="bi bi-check-circle-fill fs-2 text-success"></i>
-        </div>
-        <h5 class="fw-bold text-dark text-center mb-1">Finalizar Ordem de Abastecimento</h5>
-        <p class="text-secondary text-center small mb-3">A ordem sairá da lista ativa e será arquivada no histórico.</p>
-        
-        <input type="hidden" id="finalizarNsaInput">
-        <div class="mb-2">
-          <label class="form-label fw-bold small text-dark">Responsável pelo Recebimento na Fábrica:</label>
-          <input type="text" id="finalizarRecebedorNome" class="form-control" placeholder="Ex: Paula, Reinaldo, Operador...">
-        </div>
-        <div>
-          <label class="form-label small text-secondary">Observações (Opcional):</label>
-          <textarea id="finalizarObsInput" class="form-control" rows="2" placeholder="Opcional..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer justify-content-end border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-success fw-bold px-3" onclick="confirmarFinalizacaoAcao()">Finalizar e Arquivar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade sys-modal" id="sysReimpressaoModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
-    <div class="modal-content">
-      <div class="modal-body pt-4">
-        <div class="icon-container warning mx-auto">
-          <i class="bi bi-printer-fill fs-2 text-warning"></i>
-        </div>
-        <h5 class="fw-bold text-dark text-center mb-2">Atenção: Ordem Já Impressa</h5>
-        <p id="sysReimpDesc" class="text-secondary text-center small mb-3"></p>
-        
-        <label class="form-label fw-bold small text-dark">Motivo da Reimpressão:</label>
-        <textarea id="sysReimpMotivo" class="form-control" rows="2" placeholder="Ex: Via rasurada na fábrica..."></textarea>
-      </div>
-      <div class="modal-footer justify-content-end border-0">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmarReimpressaoAcao()">Gerar PDF Novamente</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
-
-  // USUÁRIO DA SESSÃO ATIVA
-  let currentUserSession = null;
-
-  // FUNÇÃO ORIGINAL DE ALERTAS RESTAURADA
-  function showSysAlert(title, message, type = "info") {
-    const iconDiv = document.getElementById("sysAlertIcon");
-    const icons = {
-      success: `<i class="bi bi-check-circle-fill fs-2 text-success"></i>`,
-      danger: `<i class="bi bi-x-circle-fill fs-2 text-danger"></i>`,
-      warning: `<i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>`,
-      info: `<i class="bi bi-info-circle-fill fs-2 text-primary"></i>`
-    };
-    iconDiv.className = `icon-container ${type} mx-auto`;
-    iconDiv.innerHTML = icons[type] || icons.info;
-    document.getElementById("sysAlertTitle").innerText = title;
-    document.getElementById("sysAlertMessage").innerHTML = message;
-    new bootstrap.Modal(document.getElementById("sysAlertModal")).show();
-  }
-
-  // ==========================================
-  // CONTROLE DE SESSÃO E LOGIN
-  // ==========================================
-  document.addEventListener("DOMContentLoaded", function() {
-    const saved = localStorage.getItem("torre_user_session");
-    if (saved) {
-      currentUserSession = JSON.parse(saved);
-      iniciarSistema();
-    } else {
-      document.getElementById("loginOverlay").classList.remove("d-none");
-    }
-  });
-
-  function toggleAuthView(view) {
-    document.getElementById("formLoginView").classList.toggle("d-none", view === 'register');
-    document.getElementById("formRegisterView").classList.toggle("d-none", view === 'login');
-  }
-
-  async function apiCall(action, payload = {}) {
-    const bodyData = { 
-      action: action, 
-      userEmail: currentUserSession ? currentUserSession.email : "",
-      userName: currentUserSession ? currentUserSession.nome : "",
-      ...payload 
-    };
-    const formData = new URLSearchParams();
-    formData.append("payload", JSON.stringify(bodyData));
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      const response = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        body: formData,
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      return await response.json();
-    } catch(err) {
-      return { success: false, error: err.message };
-    }
-  }
-
-  async function realizarLogin() {
-    const email = document.getElementById("loginEmail").value.trim();
-    const senha = document.getElementById("loginSenha").value.trim();
-    
-    if (!email || !senha) return showSysAlert("Atenção", "Preencha e-mail e senha.", "warning");
-    
-    const btn = document.getElementById("btnLoginAction");
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Autenticando...`;
-    
-    const res = await apiCall("authLogin", { email, senha });
-    
-    btn.disabled = false;
-    btn.innerHTML = `Acessar Sistema`;
-
-    if (res && res.success && res.message === "OK_OLD_VERSION") {
-      showSysAlert("⚠️ Erro de Versão", "O Script antigo está rodando. Vá no Apps Script e publique uma Nova Versão.", "danger");
-      return;
-    }
-
-    if (res && res.success && res.user) {
-      currentUserSession = res.user;
-      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
-      iniciarSistema();
-    } else {
-      showSysAlert("Acesso Negado", res ? res.error : "Erro de comunicação.", "danger");
-    }
-  }
-
-  async function solicitarAcesso() {
-    const email = document.getElementById("regEmail").value.trim();
-    const nome = document.getElementById("regNome").value.trim();
-    const area = document.getElementById("regArea").value.trim();
-    const senha = document.getElementById("regSenha").value.trim();
-    
-    if (!email || !nome || !senha) return showSysAlert("Atenção", "Preencha todos os campos obrigatórios.", "warning");
-    
-    const btn = document.getElementById("btnRegisterAction");
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Processando...`;
-
-    const res = await apiCall("authRegister", { email, nome, area, senha });
-
-    btn.disabled = false;
-    btn.innerHTML = `Solicitar Aprovação`;
-
-    if (res && res.success && res.message === "OK_OLD_VERSION") {
-      showSysAlert("⚠️ Erro de Versão", "O Script antigo está rodando. Publique a Nova Versão no Apps Script.", "danger");
-      return;
-    }
-
-    if (res && res.success) {
-      showSysAlert("Sucesso", "Cadastro realizado! Aguarde o Administrador liberar seu acesso.", "success");
-      toggleAuthView('login');
-    } else {
-      showSysAlert("Erro", res ? res.error : "Erro de comunicação.", "danger");
-    }
-  }
-
-  function iniciarSistema() {
-    document.getElementById("loginOverlay").classList.add("d-none");
-    atualizarExibicaoUsuario();
-    recarregarPainelCompleto();
-    if (currentUserSession && currentUserSession.perfil === "ADMIN") {
-      document.getElementById("menuAdminBtn").classList.remove("d-none");
-    }
-  }
-
-  function alterarUsuario() {
-    localStorage.removeItem("torre_user_session");
-    location.reload();
-  }
-
-  function atualizarExibicaoUsuario() {
-    if (!currentUserSession) return;
-    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
-    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
-  }
-
-  async function carregarUsuariosPendentes() {
-    const tbody = document.getElementById("tabelaPendentesBody");
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Carregando pendentes...</td></tr>`;
-    const res = await apiCall("listarUsuariosPendentes");
-    if (res && res.success) {
-      if (!res.pendentes || res.pendentes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cadastro pendente de aprovação.</td></tr>`;
-        return;
-      }
-      let html = "";
-      res.pendentes.forEach(p => {
-        html += `
-          <tr>
-            <td><strong>${p.email}</strong></td>
-            <td>${p.nome}</td>
-            <td>${p.area}</td>
-            <td>
-              <select id="perfil_${p.email.replace(/[@.]/g, '')}" class="form-select form-select-sm">
-                <option value="OPERADOR">Operador Padrão</option>
-                <option value="SUPERVISOR">Supervisor</option>
-                <option value="ADMIN">Administrador</option>
-              </select>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-success fw-bold" onclick="aprovarCadastro('${p.email}')">Aprovar Acesso</button>
-            </td>
-          </tr>`;
-      });
-      tbody.innerHTML = html;
-    }
-  }
-
-  async function aprovarCadastro(email) {
-    const cleanId = email.replace(/[@.]/g, '');
-    const perfil = document.getElementById(`perfil_${cleanId}`).value;
-    
-    const res = await apiCall("aprovarUsuario", { emailAprovar: email, perfilAdmin: perfil });
-    if (res && res.success) {
-      showSysAlert("Usuário Aprovado!", `O acesso de ${email} foi liberado como ${perfil}.`, "success");
-      carregarUsuariosPendentes();
-    } else {
-      showSysAlert("Erro", res.error || "Falha ao aprovar usuário.", "danger");
-    }
-  }
-
-  function showSection(sectionId, element) {
-    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
-    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
-    
-    const target = document.getElementById("sec-" + sectionId);
-    if (target) target.classList.remove("d-none");
-    if (element) element.classList.add("active");
-
-    if (sectionId === "dashboard") recarregarPainelCompleto();
-    if (sectionId === "controle") loadControleOrders();
-    if (sectionId === "monitorWms") {
-      renderizarTabelaConfrontoWms();
-    }
-    if (sectionId === "historico") loadAuditPage(1);
-  }
-
-  let cachedPreviewData = null;
-  let reimpCurrentNsa = null;
-  let cacheGruposNsa = {};
-  let currentAuditPage = 1;
-
-  // BASE WMS (EM MEMÓRIA E CACHE LOCAL)
-  let wmsDataAgrupada = {};
-  let wmsPedidosArray = [];
-
-  try {
-    const savedWmsLocal = localStorage.getItem("torre_wms_snapshot");
-    if (savedWmsLocal) {
-      const parsed = JSON.parse(savedWmsLocal);
-      wmsDataAgrupada = parsed.base || {};
-    }
-  } catch(e) {}
-
-  let timerSlaData = {
-    msPendente: 0,
-    msImpressos: 0
-  };
-
-  function formatarDuracaoMs(ms) {
-    if (!ms || ms <= 0) return "0d 00:00:00";
-    const totalSegundos = Math.floor(ms / 1000);
-    const dias = Math.floor(totalSegundos / 86400);
-    const horas = Math.floor((totalSegundos % 86400) / 3600);
-    const minutos = Math.floor((totalSegundos % 3600) / 60);
-    const segundos = totalSegundos % 60;
-
-    return `${dias}d ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
-  }
-
-  function updateAllLiveClocks() {
-    const now = Date.now();
-    const limite24h = 24 * 3600 * 1000;
-    const alerta18h = 18 * 3600 * 1000;
-
-    if (timerSlaData.msPendente > 0) timerSlaData.msPendente += 1000;
-    if (timerSlaData.msImpressos > 0) timerSlaData.msImpressos += 1000;
-
-    function renderCardBadge(elemId, ms) {
-      const el = document.getElementById(elemId);
-      if (!el) return;
-      el.innerHTML = `<i class="bi bi-clock-history me-1"></i> ${formatarDuracaoMs(ms)}`;
-      el.classList.remove("sla-ok", "sla-warn", "sla-danger");
-      if (ms > limite24h) {
-        el.classList.add("sla-danger");
-      } else if (ms > alerta18h) {
-        el.classList.add("sla-warn");
-      } else {
-        el.classList.add("sla-ok");
-      }
-    }
-
-    renderCardBadge("cron-pendente", timerSlaData.msPendente);
-    renderCardBadge("cron-impressos", timerSlaData.msImpressos);
-
-    document.querySelectorAll(".live-timer-row").forEach(el => {
-      const startMs = parseInt(el.getAttribute("data-start"), 10);
-      const isFinalizado = el.getAttribute("data-finalizado") === "true";
-      const finalMs = parseInt(el.getAttribute("data-fim"), 10);
-
-      if (startMs) {
-        const diffMs = isFinalizado && finalMs ? (finalMs - startMs) : Math.max(0, now - startMs);
-        el.innerHTML = `<i class="bi bi-stopwatch me-1"></i> ${formatarDuracaoMs(diffMs)}`;
-        el.classList.remove("sla-ok", "sla-warn", "sla-danger");
-        if (diffMs > limite24h) {
-          el.classList.add("sla-danger");
-        } else if (diffMs > alerta18h) {
-          el.classList.add("sla-warn");
-        } else {
-          el.classList.add("sla-ok");
-        }
-      }
-    });
-  }
-
-  setInterval(updateAllLiveClocks, 1000);
-
-  async function recarregarPainelCompleto() {
-    const btn = document.getElementById("btnAtualizarDashboard");
-    if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Atualizando...`;
-
-    await loadControleOrders();
-    await loadDashboard();
-
-    if (btn) btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Atualizar Indicadores`;
-  }
-
-  async function loadDashboard() {
-    try {
-      const metrics = await apiCall("getDashboardMetrics");
-      if (metrics && metrics.total !== undefined) {
-        document.getElementById("kpi-total").innerText = metrics.total;
-        document.getElementById("kpi-pendente").innerText = metrics.pendenteImpressao;
-        document.getElementById("kpi-impressos").innerText = metrics.impressos;
-        document.getElementById("kpi-finalizados").innerText = metrics.finalizados;
-
-        if (metrics.sla) {
-          timerSlaData.msPendente = metrics.sla.maxPendenteMs || 0;
-          timerSlaData.msImpressos = metrics.sla.maxImpressosMs || 0;
-          updateAllLiveClocks();
-
-          const taxaElem = document.getElementById("kpi-taxa-finalizados");
-          if (taxaElem) taxaElem.innerText = metrics.sla.taxaSlaFinalizados || "100% no Prazo";
-        }
-      } else {
-        const grupos = Object.values(cacheGruposNsa);
-        if (grupos.length > 0) {
-          let pend = 0, imp = 0, fin = 0;
-          grupos.forEach(g => {
-            if (g.status === "FINALIZADO") fin++;
-            else if (g.status === "IMPRESSO" || g.status === "ENTREGUE AO OPERADOR") imp++;
-            else pend++;
-          });
-          document.getElementById("kpi-total").innerText = grupos.length;
-          document.getElementById("kpi-pendente").innerText = pend;
-          document.getElementById("kpi-impressos").innerText = imp;
-          document.getElementById("kpi-finalizados").innerText = fin;
-        }
-      }
-    } catch(e) {}
-  }
-
-  function parseCSVLine(text) {
-    const p = [',', ';', '\t'];
-    let sep = ';';
-    for (const s of p) {
-      if (text.split(s).length > 10) { sep = s; break; }
-    }
-    return text.split(sep).map(col => col.replace(/^"|"$/g, '').trim());
-  }
-
-  async function processarBaseWmsCsv() {
-    const fileInput = document.getElementById("wmsCsvInput");
-    if (!fileInput.files.length) {
-      showSysAlert("Atenção", "Selecione o arquivo CSV do WMS baixado (ex: relatorioMonitorExp.csv).", "warning");
-      return;
-    }
-
-    const file = fileInput.files[0];
-    const btn = document.getElementById("btnProcessarCsvWms");
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Analisando...`;
-
-    const reader = new FileReader();
-
-    reader.onload = async function(e) {
-      try {
-        const text = e.target.result;
-        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-        if (lines.length < 2) throw new Error("Arquivo vazio ou inválido.");
-
-        const headers = parseCSVLine(lines[0]);
-        const idxPedOrigem = headers.indexOf("Pedido Origem");
-        const idxCodProd = headers.indexOf("Codigo do Produto");
-        const idxLote = headers.indexOf("Lote");
-        const idxQtd = headers.indexOf("Quantidade");
-        const idxQtdSep = headers.indexOf("Qt. Separada");
-        const idxQtdConf = headers.indexOf("Qt. Conferido");
-        const idxSeparador = headers.indexOf("Separador");
-        const idxDtSep = headers.indexOf("Dt. Separacao");
-        const idxSituacao = headers.indexOf("Situacao Pedido");
-        const idxProd = headers.indexOf("Produto");
-        const idxEnd = headers.indexOf("Endereco");
-
-        if (idxPedOrigem === -1 || idxCodProd === -1) {
-          throw new Error("Colunas obrigatórias 'Pedido Origem' ou 'Codigo do Produto' não encontradas.");
-        }
-
-        wmsDataAgrupada = {};
-
-        for (let i = 1; i < lines.length; i++) {
-          const cols = parseCSVLine(lines[i]);
-          const pedOrigem = String(cols[idxPedOrigem] || "").trim().toUpperCase();
-          if (!pedOrigem) continue;
-
-          const codProd = String(cols[idxCodProd] || "").trim();
-          const lote = String(cols[idxLote] || "").trim();
-          const qtd = parseFloat(String(cols[idxQtd] || "0").replace(/\./g, '').replace(',', '.')) || 0;
-          const qtdSep = parseFloat(String(cols[idxQtdSep] || "0").replace(/\./g, '').replace(',', '.')) || 0;
-          const qtdConf = parseFloat(String(cols[idxQtdConf] || "0").replace(/\./g, '').replace(',', '.')) || 0;
-          const separador = String(cols[idxSeparador] || "").trim();
-          const dtSep = String(cols[idxDtSep] || "").trim();
-          const situacao = String(cols[idxSituacao] || "").trim();
-          const descProd = String(cols[idxProd] || "").trim();
-          const endereco = String(cols[idxEnd] || "").trim();
-
-          if (!wmsDataAgrupada[pedOrigem]) {
-            wmsDataAgrupada[pedOrigem] = {
-              pedido: pedOrigem,
-              qtdTotal: 0,
-              qtdSeparada: 0,
-              qtdConferida: 0,
-              separadores: new Set(),
-              situacao: situacao,
-              primeiroBip: null,
-              ultimoBip: null,
-              itens: []
-            };
-          }
-
-          wmsDataAgrupada[pedOrigem].qtdTotal += qtd;
-          wmsDataAgrupada[pedOrigem].qtdSeparada += qtdSep;
-          wmsDataAgrupada[pedOrigem].qtdConferida += qtdConf;
-          if (separador) wmsDataAgrupada[pedOrigem].separadores.add(separador);
-
-          if (dtSep && dtSep !== "-") {
-            const parts = dtSep.split(/[\/\s:]/);
-            if (parts.length >= 5) {
-              const dateObj = new Date(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5] || 0);
-              const ms = dateObj.getTime();
-              if (!isNaN(ms)) {
-                if (!wmsDataAgrupada[pedOrigem].primeiroBip || ms < wmsDataAgrupada[pedOrigem].primeiroBip) {
-                  wmsDataAgrupada[pedOrigem].primeiroBip = ms;
-                }
-                if (!wmsDataAgrupada[pedOrigem].ultimoBip || ms > wmsDataAgrupada[pedOrigem].ultimoBip) {
-                  wmsDataAgrupada[pedOrigem].ultimoBip = ms;
-                }
-              }
-            }
-          }
-
-          wmsDataAgrupada[pedOrigem].itens.push({
-            codigo: codProd,
-            descricao: descProd,
-            lote: lote,
-            endereco: endereco,
-            quantidade: qtd,
-            qtdSeparada: qtdSep,
-            qtdConferida: qtdConf,
-            separador: separador,
-            dtSeparacao: dtSep,
-            situacao: situacao
-          });
-        }
-
-        const payloadPersistencia = {};
-        for (const ped in wmsDataAgrupada) {
-          payloadPersistencia[ped] = {
-            ...wmsDataAgrupada[ped],
-            separadores: Array.from(wmsDataAgrupada[ped].separadores)
-          };
-        }
-
-        const nowHoraFmt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-        try {
-          localStorage.setItem("torre_wms_snapshot", JSON.stringify({ base: payloadPersistencia, dataHora: nowHoraFmt }));
-        } catch(storageErr) {
-          console.warn("Storage local cheio, mantendo em memória.");
-        }
-
-        btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base`;
-
-        const totalPedidosWms = Object.keys(wmsDataAgrupada).length;
-        document.getElementById("wmsBaseStatusBadge").className = "badge bg-success py-2 px-3";
-        document.getElementById("wmsBaseStatusBadge").innerHTML = `<i class="bi bi-check2-circle me-1"></i> Base analisada às ${nowHoraFmt} (${totalPedidosWms} pedidos)`;
-
-        renderizarTabelaConfrontoWms();
-
-        showSysAlert(
-          "Base WMS Analisada com Sucesso!",
-          `Foram confrontados <strong>${totalPedidosWms} pedidos</strong> de expedição com as ordens de fábrica.<br>Veja a tabela abaixo com o status atualizado de cada lote!`,
-          "success"
-        );
-
-      } catch(err) {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-arrow-repeat me-1"></i> Analisar & Confrontar Base`;
-        showSysAlert("Erro no Arquivo", err.message, "danger");
-      }
-    };
-
-    reader.readAsText(file, "ISO-8859-1");
-  }
-
-  function renderizarTabelaConfrontoWms() {
-    const tbody = document.getElementById("tableMonitorWmsBody");
-    tbody.innerHTML = "";
-
-    const ordensPlanejadas = Object.values(cacheGruposNsa);
-    const now = Date.now();
-
-    if (ordensPlanejadas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4">Nenhum pedido de fábrica ativo no sistema.</td></tr>`;
-      return;
-    }
-
-    wmsPedidosArray = ordensPlanejadas.map(ordem => {
-      const nsaNumero = ordem.nsa.replace(/[^0-9]/g, '');
-      let wmsInfo = wmsDataAgrupada[ordem.nsa] || wmsDataAgrupada[`AB-${nsaNumero}`] || wmsDataAgrupada[`NSA-${nsaNumero}`] || null;
-
-      let pct = 0;
-      let qtdSol = ordem.totalKg;
-      let qtdSep = 0;
-      let separador = "Não Iniciado";
-      let statusWms = "Fila WMS";
-
-      if (wmsInfo) {
-        qtdSep = wmsInfo.qtdSeparada;
-        pct = wmsInfo.qtdTotal > 0 ? Math.min(100, Math.round((wmsInfo.qtdSeparada / wmsInfo.qtdTotal) * 100)) : 0;
-        const sepArr = Array.isArray(wmsInfo.separadores) ? wmsInfo.separadores : Array.from(wmsInfo.separadores || []);
-        separador = sepArr.join(", ") || "Em fila";
-        statusWms = wmsInfo.situacao || (pct === 100 ? "SEPARADO" : "EM SEPARAÇÃO");
-      }
-
-      const marcoInicial = ordem.dtImpMs || ordem.dtImportMs || now;
-      const isFinalizado = ordem.status === 'FINALIZADO';
-      const marcoFinal = ordem.dtFimMs || now;
-
-      return {
-        nsa: ordem.nsa,
-        documento: ordem.documento,
-        qtdSol: qtdSol,
-        qtdSep: qtdSep,
-        pct: pct,
-        separador: separador,
-        statusWms: statusWms,
-        marcoInicial: marcoInicial,
-        isFinalizado: isFinalizado,
-        marcoFinal: marcoFinal,
-        wmsInfo: wmsInfo
-      };
-    });
-
-    filtrarTabelaWms();
-  }
-
-  function filtrarTabelaWms() {
-    const buscaNsa = document.getElementById("filtroWmsNsa").value.trim().toLowerCase();
-    const filtroStatus = document.getElementById("filtroWmsStatus").value;
-    const buscaSep = document.getElementById("filtroWmsSeparador").value.trim().toLowerCase();
-
-    const tbody = document.getElementById("tableMonitorWmsBody");
-    tbody.innerHTML = "";
-
-    const filtrados = wmsPedidosArray.filter(item => {
-      if (buscaNsa && !item.nsa.toLowerCase().includes(buscaNsa)) return false;
-      if (buscaSep && !item.separador.toLowerCase().includes(buscaSep)) return false;
-      if (filtroStatus === "PENDENTES" && item.pct === 100) return false;
-      if (filtroStatus === "CONCLUIDO" && item.pct < 100) return false;
-      if (filtroStatus === "NAO_INICIADO" && item.pct > 0) return false;
-      if (filtroStatus === "EM_ANDAMENTO" && (item.pct === 0 || item.pct === 100)) return false;
-      return true;
-    });
-
-    if (filtrados.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted p-4">Nenhum pedido atende aos filtros selecionados.</td></tr>`;
-      return;
-    }
-
-    let rowsHtml = "";
-    filtrados.forEach(it => {
-      let corBarra = "bg-danger";
-      if (it.pct >= 100) corBarra = "bg-success";
-      else if (it.pct > 0) corBarra = "bg-warning";
-
-      rowsHtml += `
-        <tr>
-          <td>
-            <strong class="text-primary">${it.nsa}</strong>
-            <small class="d-block text-muted">${it.documento}</small>
-          </td>
-          <td>
-            <span class="badge-sla sla-ok live-timer-row" 
-                  data-start="${it.marcoInicial}" 
-                  data-finalizado="${it.isFinalizado}" 
-                  data-fim="${it.marcoFinal}">
-              <i class="bi bi-stopwatch me-1"></i> 0d 00:00:00
-            </span>
-          </td>
-          <td>
-            <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
-              <span>${it.pct}% Separado</span>
-            </div>
-            <div class="progress-bar-wms">
-              <div class="progress-fill ${corBarra}" style="width: ${it.pct}%;"></div>
-            </div>
-          </td>
-          <td>
-            <strong>${it.qtdSep.toLocaleString('pt-BR')}</strong> / <small class="text-muted">${it.qtdSol.toLocaleString('pt-BR')} KG</small>
-          </td>
-          <td>
-            <strong class="text-dark small">${it.separador}</strong>
-          </td>
-          <td>
-            <span class="badge ${it.pct === 100 ? 'bg-success' : (it.pct > 0 ? 'bg-warning text-dark' : 'bg-secondary')}">${it.statusWms}</span>
-          </td>
-          <td style="text-align: center;">
-            <button class="btn btn-sm btn-outline-dark py-1 px-2" onclick="abrirModalConfrontoDetalhe('${it.nsa}')" title="Ver itens deste pedido no WMS">
-              <i class="bi bi-eye"></i> Detalhes
-            </button>
-          </td>
-        </tr>
-      `;
-    });
-
-    tbody.innerHTML = rowsHtml;
-    updateAllLiveClocks();
-  }
-
-  function abrirModalConfrontoDetalhe(nsa) {
-    const pedidoObj = wmsPedidosArray.find(p => p.nsa === nsa);
-    if (!pedidoObj) return;
-
-    document
+            <div class="col-md-3 mt-md-
