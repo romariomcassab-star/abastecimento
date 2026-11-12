@@ -15,8 +15,7 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- SWEETALERT 2 PARA ALERTAS MODERNOS E LOADER -->
+  <!-- SWEETALERT2 PARA POP-UPS ELEGANTES -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
@@ -232,60 +231,88 @@
       color: #fff;
     }
 
-    /* ESTILOS DO NOVO LOADER NEON VERDE */
-    .neon-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .neon-spinner { width: 70px; height: 70px; border: 4px solid rgba(57, 255, 20, 0.1); border-top-color: #39ff14; border-right-color: #39ff14; border-radius: 50%; animation: spin 1s linear infinite, neon-glow 1.5s ease-in-out infinite alternate; margin-bottom: 25px; }
-    .neon-text { color: #39ff14; font-weight: bold; font-size: 1.2rem; letter-spacing: 3px; font-family: monospace; text-shadow: 0 0 10px rgba(57, 255, 20, 0.8); }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes neon-glow { from { box-shadow: 0 0 5px #39ff14, 0 0 5px #39ff14 inset; } to { box-shadow: 0 0 20px #39ff14, 0 0 10px #39ff14 inset; } }
+    /* LOADER NEON VERDE */
+    .neon-loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+    .neon-spinner {
+      width: 65px;
+      height: 65px;
+      border: 4px solid rgba(57, 255, 20, 0.1);
+      border-top-color: #39ff14;
+      border-right-color: #39ff14;
+      border-radius: 50%;
+      animation: spin 1s linear infinite, neon-glow 1.5s ease-in-out infinite alternate;
+      margin-bottom: 20px;
+    }
+    .neon-text {
+      color: #39ff14;
+      font-weight: bold;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      font-family: monospace;
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.8);
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes neon-glow {
+      from { box-shadow: 0 0 5px #39ff14, 0 0 5px #39ff14 inset; }
+      to { box-shadow: 0 0 20px #39ff14, 0 0 10px #39ff14 inset; }
+    }
   </style>
 </head>
 <body>
 
-<!-- TELA DE LOGIN OVERLAY (BLOQUEIA O SISTEMA INTEIRO) -->
+<!-- TELA DE LOGIN OVERLAY -->
 <div id="loginOverlay" class="position-fixed w-100 h-100 bg-dark d-flex align-items-center justify-content-center" style="z-index: 9999; top: 0; left: 0;">
-  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px; border: 1px solid #334155; background: #1e293b; color: #fff;">
+  <div class="card p-4 shadow-lg" style="width: 100%; max-width: 400px; border-radius: 12px; background: #ffffff;">
     <div class="text-center mb-4">
       <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3rem;"></i>
-      <h4 class="fw-bold mt-2">Torre de Controle</h4>
-      <small class="text-secondary">Gestão de Abastecimento</small>
+      <h4 class="fw-bold mt-2 text-dark">Torre de Controle</h4>
+      <small class="text-muted">Gestão de Abastecimento</small>
     </div>
-    
+
     <!-- FORM LOGIN -->
     <div id="formLoginView">
       <div class="mb-3">
-        <label class="form-label small fw-bold text-light">E-mail Corporativo</label>
-        <input type="email" id="loginEmail" class="form-control text-dark">
+        <label class="form-label small fw-bold text-dark">E-mail Corporativo</label>
+        <input type="email" id="loginEmail" class="form-control">
       </div>
       <div class="mb-4">
-        <label class="form-label small fw-bold text-light">Senha</label>
-        <input type="password" id="loginSenha" class="form-control text-dark" onkeyup="if(event.key === 'Enter') realizarLogin()">
+        <label class="form-label small fw-bold text-dark">Senha</label>
+        <input type="password" id="loginSenha" class="form-control" onkeyup="if(event.key === 'Enter') realizarLogin()">
       </div>
-      <button class="btn btn-primary w-100 fw-bold mb-3" onclick="realizarLogin()">Acessar Sistema</button>
+      <button class="btn btn-primary w-100 fw-bold mb-3 py-2" onclick="realizarLogin()">Acessar Sistema</button>
       <div class="text-center">
-        <a href="javascript:void(0)" class="text-decoration-none small text-info" onclick="toggleAuthView('register')">Não possui acesso? Solicite aqui.</a>
+        <a href="javascript:void(0)" class="text-decoration-none small" onclick="toggleAuthView('register')">Não possui acesso? Solicite aqui.</a>
       </div>
     </div>
-    
+
     <!-- FORM CADASTRO -->
     <div id="formRegisterView" class="d-none">
       <div class="mb-2">
-        <label class="form-label small fw-bold text-light">E-mail</label>
-        <input type="email" id="regEmail" class="form-control form-control-sm text-dark">
+        <label class="form-label small fw-bold text-dark">E-mail</label>
+        <input type="email" id="regEmail" class="form-control form-control-sm">
       </div>
       <div class="mb-2">
-        <label class="form-label small fw-bold text-light">Nome Completo</label>
-        <input type="text" id="regNome" class="form-control form-control-sm text-dark">
+        <label class="form-label small fw-bold text-dark">Nome Completo</label>
+        <input type="text" id="regNome" class="form-control form-control-sm">
       </div>
       <div class="mb-2">
-        <label class="form-label small fw-bold text-light">Área</label>
-        <input type="text" id="regArea" class="form-control form-control-sm text-dark">
+        <label class="form-label small fw-bold text-dark">Área (Ex: Logística)</label>
+        <input type="text" id="regArea" class="form-control form-control-sm">
       </div>
       <div class="mb-3">
-        <label class="form-label small fw-bold text-light">Criar Senha</label>
-        <input type="password" id="regSenha" class="form-control form-control-sm text-dark" onkeyup="if(event.key === 'Enter') solicitarAcesso()">
+        <label class="form-label small fw-bold text-dark">Criar Senha</label>
+        <input type="password" id="regSenha" class="form-control form-control-sm">
       </div>
-      <button class="btn btn-success w-100 fw-bold mb-2" onclick="solicitarAcesso()">Solicitar Aprovação</button>
+      <button class="btn btn-success w-100 fw-bold mb-2 py-2" onclick="solicitarAcesso()">Solicitar Aprovação</button>
       <div class="text-center">
         <a href="javascript:void(0)" class="text-decoration-none text-muted small" onclick="toggleAuthView('login')">Voltar para Login</a>
       </div>
@@ -304,7 +331,7 @@
       <span class="text-secondary d-block" style="font-size: 0.75rem;">USUÁRIO CONECTADO:</span>
       <strong id="topUserDisplay" class="text-white"></strong>
     </div>
-    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Sair do sistema">
+    <button class="btn btn-outline-light btn-sm px-3" onclick="alterarUsuario()" title="Trocar ou autenticar usuário">
       <i class="bi bi-box-arrow-right"></i> Sair
     </button>
   </div>
@@ -326,8 +353,7 @@
         <li class="nav-item"><a class="nav-link" onclick="showSection('monitorWms', this)"><i class="bi bi-arrow-repeat text-warning"></i> Confronto WMS (Hora a Hora)</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('historico', this)"><i class="bi bi-clock-history"></i> Trilha de Auditoria</a></li>
         
-        <!-- BOTÃO DE ADMINISTRAÇÃO (SÓ APARECE PARA ADMIN) -->
-        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovação Admin</a></li>
+        <li class="nav-item d-none" id="menuAdminBtn"><a class="nav-link text-warning" onclick="showSection('admin', this); carregarUsuariosPendentes();"><i class="bi bi-shield-check"></i> Aprovar Usuários</a></li>
       </ul>
     </div>
 
@@ -344,10 +370,12 @@
         </div>
 
         <div class="row g-3 mb-4">
+          <!-- CARD TOTAL -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white h-100">
               <span class="text-secondary small fw-bold">TOTAL DE PEDIDOS WMS</span>
               <h3 id="kpi-total" class="fw-bold my-1 text-dark">0</h3>
+              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-bullseye"></i> Meta SLA:</span>
                 <span class="badge bg-light text-dark border">24 Horas</span>
@@ -355,10 +383,12 @@
             </div>
           </div>
 
+          <!-- CARD AGUARDANDO IMPRESSÃO -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-warning border-4 h-100">
               <span class="text-secondary small fw-bold">AGUARDANDO IMPRESSÃO</span>
               <h3 id="kpi-pendente" class="fw-bold my-1 text-warning">0</h3>
+              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch"></i> Tempo em Fila:</span>
                 <span id="cron-pendente" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -366,10 +396,12 @@
             </div>
           </div>
 
+          <!-- CARD IMPRESSOS / COM OPERADOR -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-info border-4 h-100">
               <span class="text-secondary small fw-bold">IMPRESSOS / COM OPERADOR</span>
               <h3 id="kpi-impressos" class="fw-bold my-1 text-info">0</h3>
+              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-stopwatch-fill"></i> Tempo em Operação:</span>
                 <span id="cron-impressos" class="badge-sla sla-ok">0d 00:00:00</span>
@@ -377,10 +409,12 @@
             </div>
           </div>
 
+          <!-- CARD FINALIZADOS -->
           <div class="col-md-3">
             <div class="card card-kpi p-3 bg-white border-start border-success border-4 h-100">
               <span class="text-secondary small fw-bold">FINALIZADOS</span>
               <h3 id="kpi-finalizados" class="fw-bold my-1 text-success">0</h3>
+              
               <div class="sla-footer-card">
                 <span class="text-muted"><i class="bi bi-check2-circle"></i> Eficiência SLA:</span>
                 <span id="kpi-taxa-finalizados" class="badge bg-success bg-opacity-10 text-success fw-bold">100% no Prazo</span>
@@ -614,8 +648,8 @@
           </div>
         </div>
       </div>
-
-      <!-- ADMINISTRAÇÃO DE ACESSOS -->
+      
+      <!-- TELA DE ADMINISTRAÇÃO (APROVAÇÃO) -->
       <div id="sec-admin" class="content-section d-none">
         <h4 class="fw-bold mb-3">Administração de Acessos</h4>
         <div class="bg-white p-3 rounded shadow-sm">
@@ -741,12 +775,9 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz16uTm0WnTL-PT9KpqUl_F0ShznhFRXF2ZMtNAjadxmpGMAV5lTFfUkfxbHwsxdlLe/exec";
 
-  // USUÁRIO DA SESSÃO ATIVA (Inicializa vazio para forçar o Login)
+  // USUÁRIO DA SESSÃO ATIVA
   let currentUserSession = null;
 
-  // ==========================================
-  // SUBSTITUIÇÃO DOS POPUPS BOOTSTRAP POR SWEETALERT2
-  // ==========================================
   function showSysAlert(title, message, type = "info") {
     const swalType = type === "danger" ? "error" : type;
     Swal.fire({
@@ -765,14 +796,14 @@
           <div class="neon-text">${texto}</div>
         </div>
       `,
-      background: '#0f172a', 
+      background: '#0f172a',
       showConfirmButton: false,
       allowOutsideClick: false
     });
   }
 
   // ==========================================
-  // SESSÃO, LOGIN E APROVAÇÃO ADMIN
+  // NAVEGAÇÃO IMEDIATA E CONTROLE DE SESSÃO
   // ==========================================
   document.addEventListener("DOMContentLoaded", function() {
     const saved = localStorage.getItem("torre_user_session");
@@ -787,142 +818,6 @@
   function toggleAuthView(view) {
     document.getElementById("formLoginView").classList.toggle("d-none", view === 'register');
     document.getElementById("formRegisterView").classList.toggle("d-none", view === 'login');
-  }
-
-  async function realizarLogin() {
-    const email = document.getElementById("loginEmail").value;
-    const senha = document.getElementById("loginSenha").value;
-    
-    if (!email || !senha) return showSysAlert("Atenção", "Preencha e-mail e senha.", "warning");
-    
-    showLoadingNeon('AUTENTICANDO...');
-    const res = await apiCall("authLogin", { email, senha });
-    
-    if (res && res.success && res.message === "OK") {
-      showSysAlert("⚠️ Erro", "O Google Apps Script ainda está rodando a versão antiga. Você precisa publicar uma Nova Versão da Implantação para o sistema de Login funcionar.", "warning");
-      return;
-    }
-
-    if (res && res.success && res.user) {
-      currentUserSession = res.user;
-      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
-      Swal.close();
-      iniciarSistema();
-    } else {
-      showSysAlert("Acesso Negado", res.error || "Erro de comunicação com o servidor.", "danger");
-    }
-  }
-
-  async function solicitarAcesso() {
-    const email = document.getElementById("regEmail").value;
-    const nome = document.getElementById("regNome").value;
-    const area = document.getElementById("regArea").value;
-    const senha = document.getElementById("regSenha").value;
-    
-    if (!email || !nome || !senha) return showSysAlert("Atenção", "Preencha todos os campos obrigatórios.", "warning");
-    
-    showLoadingNeon('PROCESSANDO...');
-    const res = await apiCall("authRegister", { email, nome, area, senha });
-    
-    if (res && res.success && res.message === "OK") {
-      showSysAlert("⚠️ Erro", "O Google Apps Script ainda está rodando a versão antiga. Publique uma Nova Versão.", "warning");
-      return;
-    }
-
-    if (res && res.success) {
-      showSysAlert("Sucesso", "Cadastro realizado! Aguarde o Administrador liberar seu acesso.", "success");
-      toggleAuthView('login');
-    } else {
-      showSysAlert("Erro", res.error || "Falha ao registrar usuário.", "danger");
-    }
-  }
-
-  function iniciarSistema() {
-    document.getElementById("loginOverlay").classList.add("d-none");
-    atualizarExibicaoUsuario();
-    recarregarPainelCompleto();
-    
-    if (currentUserSession.perfil === "ADMIN") {
-      document.getElementById("menuAdminBtn").classList.remove("d-none");
-    }
-  }
-
-  function alterarUsuario() {
-    localStorage.removeItem("torre_user_session");
-    location.reload();
-  }
-
-  function atualizarExibicaoUsuario() {
-    if (!currentUserSession) return;
-    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
-    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
-  }
-
-  async function carregarUsuariosPendentes() {
-    const tbody = document.getElementById("tabelaPendentesBody");
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Carregando pendentes...</td></tr>`;
-    
-    const res = await apiCall("listarUsuariosPendentes");
-    if (res && res.success) {
-      if (!res.pendentes || res.pendentes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cadastro pendente de aprovação.</td></tr>`;
-        return;
-      }
-      
-      let html = "";
-      res.pendentes.forEach(p => {
-        html += `
-          <tr>
-            <td><strong>${p.email}</strong></td>
-            <td>${p.nome}</td>
-            <td>${p.area}</td>
-            <td>
-              <select id="perfil_${p.email.replace(/[@.]/g, '')}" class="form-select form-select-sm">
-                <option value="OPERADOR">Operador Padrão</option>
-                <option value="SUPERVISOR">Supervisor</option>
-                <option value="ADMIN">Administrador</option>
-              </select>
-            </td>
-            <td>
-              <button class="btn btn-sm btn-success fw-bold" onclick="aprovarCadastro('${p.email}')">Aprovar Acesso</button>
-            </td>
-          </tr>`;
-      });
-      tbody.innerHTML = html;
-    }
-  }
-
-  async function aprovarCadastro(email) {
-    const cleanId = email.replace(/[@.]/g, '');
-    const perfil = document.getElementById(`perfil_${cleanId}`).value;
-    
-    showLoadingNeon('APROVANDO...');
-    const res = await apiCall("aprovarUsuario", { emailAprovar: email, perfilAdmin: perfil });
-    if (res && res.success) {
-      showSysAlert("Usuário Aprovado!", `O acesso de ${email} foi liberado como ${perfil}.`, "success");
-      carregarUsuariosPendentes();
-    } else {
-      showSysAlert("Erro", "Falha ao aprovar usuário.", "danger");
-    }
-  }
-
-  // ==========================================
-  // NAVEGAÇÃO E API CALL (Comunicação com Backend)
-  // ==========================================
-  function showSection(sectionId, element) {
-    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
-    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
-    
-    const target = document.getElementById("sec-" + sectionId);
-    if (target) target.classList.remove("d-none");
-    if (element) element.classList.add("active");
-
-    if (sectionId === "dashboard") recarregarPainelCompleto();
-    if (sectionId === "controle") loadControleOrders();
-    if (sectionId === "monitorWms") {
-      renderizarTabelaConfrontoWms();
-    }
-    if (sectionId === "historico") loadAuditPage(1);
   }
 
   async function apiCall(action, payload = {}) {
@@ -951,15 +846,141 @@
     }
   }
 
-  // =========================================================================
-  // SISTEMA ORIGINAL (EXATAMENTE COMO VOCÊ MANDOU, SEM MUDAR REGEX)
-  // =========================================================================
+  async function realizarLogin() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const senha = document.getElementById("loginSenha").value.trim();
+    
+    if (!email || !senha) return showSysAlert("Atenção", "Preencha e-mail e senha.", "warning");
+    
+    showLoadingNeon('AUTENTICANDO...');
+    const res = await apiCall("authLogin", { email, senha });
+
+    if (res && res.success && res.message === "OK") {
+      showSysAlert("⚠️ Erro de Versão", "O Script antigo está rodando. Vá no Apps Script e publique uma Nova Versão.", "danger");
+      return;
+    }
+
+    if (res && res.success && res.user) {
+      currentUserSession = res.user;
+      localStorage.setItem("torre_user_session", JSON.stringify(currentUserSession));
+      Swal.close();
+      iniciarSistema();
+    } else {
+      showSysAlert("Acesso Negado", res ? res.error : "Erro de comunicação.", "danger");
+    }
+  }
+
+  async function solicitarAcesso() {
+    const email = document.getElementById("regEmail").value.trim();
+    const nome = document.getElementById("regNome").value.trim();
+    const area = document.getElementById("regArea").value.trim();
+    const senha = document.getElementById("regSenha").value.trim();
+    
+    if (!email || !nome || !senha) return showSysAlert("Atenção", "Preencha todos os campos obrigatórios.", "warning");
+    
+    showLoadingNeon('PROCESSANDO...');
+    const res = await apiCall("authRegister", { email, nome, area, senha });
+
+    if (res && res.success && res.message === "OK") {
+      showSysAlert("⚠️ Erro de Versão", "O Script antigo está rodando. Publique a Nova Versão no Apps Script.", "danger");
+      return;
+    }
+
+    if (res && res.success) {
+      showSysAlert("Sucesso", "Cadastro realizado! Aguarde o Administrador liberar seu acesso.", "success");
+      toggleAuthView('login');
+    } else {
+      showSysAlert("Erro", res ? res.error : "Erro de comunicação.", "danger");
+    }
+  }
+
+  function iniciarSistema() {
+    document.getElementById("loginOverlay").classList.add("d-none");
+    atualizarExibicaoUsuario();
+    recarregarPainelCompleto();
+    if (currentUserSession && currentUserSession.perfil === "ADMIN") {
+      document.getElementById("menuAdminBtn").classList.remove("d-none");
+    }
+  }
+
+  function alterarUsuario() {
+    localStorage.removeItem("torre_user_session");
+    location.reload();
+  }
+
+  function atualizarExibicaoUsuario() {
+    if (!currentUserSession) return;
+    document.getElementById("topUserDisplay").innerText = `${currentUserSession.nome} (${currentUserSession.perfil})`;
+    document.getElementById("sessionUserArea").innerText = currentUserSession.area;
+  }
+
+  async function carregarUsuariosPendentes() {
+    const tbody = document.getElementById("tabelaPendentesBody");
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center">Carregando pendentes...</td></tr>`;
+    const res = await apiCall("listarUsuariosPendentes");
+    if (res && res.success) {
+      if (!res.pendentes || res.pendentes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Nenhum cadastro pendente de aprovação.</td></tr>`;
+        return;
+      }
+      let html = "";
+      res.pendentes.forEach(p => {
+        html += `
+          <tr>
+            <td><strong>${p.email}</strong></td>
+            <td>${p.nome}</td>
+            <td>${p.area}</td>
+            <td>
+              <select id="perfil_${p.email.replace(/[@.]/g, '')}" class="form-select form-select-sm">
+                <option value="OPERADOR">Operador Padrão</option>
+                <option value="SUPERVISOR">Supervisor</option>
+                <option value="ADMIN">Administrador</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-success fw-bold" onclick="aprovarCadastro('${p.email}')">Aprovar Acesso</button>
+            </td>
+          </tr>`;
+      });
+      tbody.innerHTML = html;
+    }
+  }
+
+  async function aprovarCadastro(email) {
+    const cleanId = email.replace(/[@.]/g, '');
+    const perfil = document.getElementById(`perfil_${cleanId}`).value;
+    showLoadingNeon('APROVANDO...');
+    const res = await apiCall("aprovarUsuario", { emailAprovar: email, perfilAdmin: perfil });
+    if (res && res.success) {
+      showSysAlert("Usuário Aprovado!", `O acesso de ${email} foi liberado como ${perfil}.`, "success");
+      carregarUsuariosPendentes();
+    } else {
+      showSysAlert("Erro", res.error || "Falha ao aprovar usuário.", "danger");
+    }
+  }
+
+  function showSection(sectionId, element) {
+    document.querySelectorAll(".content-section").forEach(el => el.classList.add("d-none"));
+    document.querySelectorAll(".sidebar .nav-link").forEach(el => el.classList.remove("active"));
+    
+    const target = document.getElementById("sec-" + sectionId);
+    if (target) target.classList.remove("d-none");
+    if (element) element.classList.add("active");
+
+    if (sectionId === "dashboard") recarregarPainelCompleto();
+    if (sectionId === "controle") loadControleOrders();
+    if (sectionId === "monitorWms") {
+      renderizarTabelaConfrontoWms();
+    }
+    if (sectionId === "historico") loadAuditPage(1);
+  }
 
   let cachedPreviewData = null;
   let reimpCurrentNsa = null;
   let cacheGruposNsa = {};
   let currentAuditPage = 1;
 
+  // BASE WMS (EM MEMÓRIA E CACHE LOCAL)
   let wmsDataAgrupada = {};
   let wmsPedidosArray = [];
 
@@ -1035,6 +1056,7 @@
   setInterval(updateAllLiveClocks, 1000);
 
   async function recarregarPainelCompleto() {
+    if (!currentUserSession) return;
     const btn = document.getElementById("btnAtualizarDashboard");
     if (btn) btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Atualizando...`;
 
@@ -1079,6 +1101,9 @@
     } catch(e) {}
   }
 
+  // =========================================================================
+  // PROCESSAMENTO DO CSV WMS
+  // =========================================================================
   function parseCSVLine(text) {
     const p = [',', ';', '\t'];
     let sep = ';';
@@ -2065,7 +2090,8 @@
 
     let origem = "NAF";
     let destino = "NAP";
-    const matchOD = fullText.match(/\b(NAF|SAF|MAF)\b[\s\|]+(NAP|MDP|OAP|MAP)\b/i);
+    // CORREÇÃO: Adicionado SAP na lista de destinos reconhecidos pela Regex
+    const matchOD = fullText.match(/\b(NAF|SAF|MAF)\b[\s\|]+(NAP|MDP|OAP|MAP|SAP)\b/i);
     if (matchOD) {
       origem = matchOD[1].toUpperCase();
       destino = matchOD[2].toUpperCase();
